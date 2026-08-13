@@ -1,26 +1,53 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+  Tokens de la marca PF Negocios Inmobiliarios.
+  Azul y marino salen del logo; celeste y coral de sus gráficas de Instagram.
+  Pendiente confirmar contra manual de marca si existe (pregunta F1 del cuestionario).
+  Los neutros derivan del marino (fríos a propósito) — no son grises default.
+*/
+@theme {
+  --color-pf-blue: #1c5fa6;
+  --color-pf-navy: #161d2e;
+  --color-pf-teal: #1e7c9c;
+  --color-pf-coral: #e8836e;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-pf-blue-soft: #e3edf7;
+  --color-pf-teal-soft: #e0eff4;
+  --color-pf-coral-soft: #fbeae4;
+
+  --color-paper: #f4f7fa;
+  --color-surface: #ffffff;
+  --color-ink: #1c2534;
+  --color-ink-soft: #52617a;
+  --color-ink-faint: #7e8ca1;
+  --color-line: #d9e2ec;
+  --color-line-soft: #e8eef4;
+
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-source-serif);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/*
+  Un solo tema, claro, a propósito: la web de una inmobiliaria se comparte por
+  WhatsApp e imprime fichas; el modo oscuro acá no aporta y duplica el trabajo
+  de mantenimiento. Decisión, no olvido.
+*/
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-pf-blue-soft);
+}
+
+/* Entrada suave del lightbox — solo si el sistema no pide menos movimiento
+   (el componente la aplica con motion-safe:) */
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
 }
