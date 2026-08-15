@@ -27,6 +27,7 @@ export const getConfig = cache(async (): Promise<ConfigNegocio> => {
 export interface FiltrosListado {
   operacion?: string
   tipo?: string
+  dormitorios?: number
 }
 
 export const getPropiedadesPublicas = cache(async (filtros: FiltrosListado = {}): Promise<Propiedad[]> => {
@@ -41,6 +42,12 @@ export const getPropiedadesPublicas = cache(async (filtros: FiltrosListado = {})
   }
   if (filtros.tipo) {
     query = query.eq('tipo', filtros.tipo)
+  }
+  // Pedido del cliente (15/8): poder filtrar por cantidad de dormitorios.
+  // eq exacto: los chips se derivan de los valores realmente cargados, así
+  // que nunca se ofrece un número sin resultados.
+  if (filtros.dormitorios) {
+    query = query.eq('dormitorios', filtros.dormitorios)
   }
 
   const { data, error } = await query

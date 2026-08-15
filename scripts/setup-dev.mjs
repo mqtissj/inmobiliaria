@@ -56,8 +56,8 @@ const config = [
 
 // ---------- 3. Usuario de prueba del panel ----------
 // Solo para desarrollo. El usuario real de la inmobiliaria se crea el día de la entrega.
-const TEST_EMAIL = 'admin@pf-test.uy'
-const TEST_PASSWORD = 'PfPanel-2026-dev'
+const TEST_EMAIL = 'pf-inmobiliaria@tbo.uy' // cambiado el 15/8/2026 a pedido de Matías
+const TEST_PASSWORD = 'pf-inmobiliaria-panel'
 {
   const { data } = await admin.auth.admin.listUsers()
   const existe = data?.users?.some((u) => u.email === TEST_EMAIL)

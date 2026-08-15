@@ -61,8 +61,8 @@ await admin.from('propiedades').update({ precio: 350000 }).eq('codigo', 'TB-004'
 // ---------- 3. Usuario del panel (authenticated) ----------
 {
   const { data: sesion, error: errLogin } = await anon.auth.signInWithPassword({
-    email: 'admin@pf-test.uy',
-    password: 'PfPanel-2026-dev',
+    email: 'pf-inmobiliaria@tbo.uy', // cambiado el 15/8/2026 (mismo usuario que setup-dev.mjs)
+    password: 'pf-inmobiliaria-panel',
   })
   check('login con contraseña funciona', !errLogin && !!sesion?.session)
 

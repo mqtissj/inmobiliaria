@@ -15,17 +15,25 @@ export default async function Home(props: PageProps<'/'>) {
   const sp = await props.searchParams
   const operacion = typeof sp.operacion === 'string' ? sp.operacion : undefined
   const tipo = typeof sp.tipo === 'string' ? sp.tipo : undefined
+  // Number('abc') es NaN y NaN || undefined cae en undefined: un valor basura
+  // en la URL simplemente no filtra, no rompe
+  const dormitorios =
+    typeof sp.dormitorios === 'string' ? Number(sp.dormitorios) || undefined : undefined
 
   let contenido: React.ReactNode
   try {
     const [config, propiedades, todas, faqs] = await Promise.all([
       getConfig(),
-      getPropiedadesPublicas({ operacion, tipo }),
-      getPropiedadesPublicas({}), // sin filtro, para derivar los tipos disponibles
+      getPropiedadesPublicas({ operacion, tipo, dormitorios }),
+      getPropiedadesPublicas({}), // sin filtro, para derivar los chips disponibles
       getFaqs(),
     ])
     const portadas = await getPortadas(propiedades.map((p) => p.id))
     const tiposDisponibles = [...new Set(todas.map((p) => p.tipo))]
+    // Solo los valores realmente cargados; los campos/chacras tienen null y no cuentan
+    const dormitoriosDisponibles = [
+      ...new Set(todas.map((p) => p.dormitorios).filter((d): d is number => d != null)),
+    ].sort((a, b) => a - b)
 
     contenido = (
       <>
@@ -44,6 +52,8 @@ export default async function Home(props: PageProps<'/'>) {
                 operacionActiva={operacion}
                 tipoActivo={tipo}
                 tiposDisponibles={tiposDisponibles}
+                dormitoriosActivo={dormitorios}
+                dormitoriosDisponibles={dormitoriosDisponibles}
               />
             </div>
           </div>
@@ -57,6 +67,7 @@ export default async function Home(props: PageProps<'/'>) {
               : `${propiedades.length} propiedades`}
             {operacion ? ` en ${operacion}` : ''}
             {tipo ? ` · ${tipo}` : ''}
+            {dormitorios ? ` · ${dormitorios} ${dormitorios === 1 ? 'dormitorio' : 'dormitorios'}` : ''}
           </p>
 
           {propiedades.length > 0 ? (
