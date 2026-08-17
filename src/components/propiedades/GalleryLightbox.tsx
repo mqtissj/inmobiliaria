@@ -100,8 +100,20 @@ export function GalleryLightbox({ fotos, titulo }: { fotos: PropiedadFoto[]; tit
           className="fixed inset-0 z-50 flex items-center justify-center bg-pf-navy/95 motion-safe:animate-[aparecer_0.15s_ease]"
           onClick={cerrar}
         >
-          {/* stopPropagation: el clic en la foto o los controles no cierra */}
-          <div className="relative h-full w-full max-w-5xl p-4 sm:p-10" onClick={(e) => e.stopPropagation()}>
+          {/*
+            pointer-events-none, no stopPropagation.
+
+            Antes este contenedor frenaba el clic para que tocar la foto no
+            cerrara. El problema: mide `h-full w-full max-w-5xl` = 1024px, así
+            que en un celular de 375px TAPA TODA LA PANTALLA. No quedaba ni un
+            pixel de fondo para tocar, y cerrar era imposible salvo apuntándole
+            al × chiquito de la esquina.
+
+            Ahora los clics lo atraviesan y llegan al fondo, que cierra. Tocar
+            la foto para salir es lo que hace cualquier galería en el celular.
+            Los controles recuperan el clic con pointer-events-auto.
+          */}
+          <div className="pointer-events-none relative h-full w-full max-w-5xl p-4 sm:p-10">
             <Image
               src={fotos[abierta].url}
               alt={`Foto ${abierta + 1} de ${titulo}`}
@@ -115,7 +127,7 @@ export function GalleryLightbox({ fotos, titulo }: { fotos: PropiedadFoto[]; tit
             type="button"
             onClick={cerrar}
             aria-label="Cerrar las fotos"
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-surface/10 text-xl text-surface transition-colors hover:bg-surface/25"
+            className="pointer-events-auto absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-surface/10 text-xl text-surface transition-colors hover:bg-surface/25"
           >
             ×
           </button>
@@ -129,7 +141,7 @@ export function GalleryLightbox({ fotos, titulo }: { fotos: PropiedadFoto[]; tit
                   mover(-1)
                 }}
                 aria-label="Foto anterior"
-                className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/10 text-xl text-surface transition-colors hover:bg-surface/25"
+                className="pointer-events-auto absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/10 text-xl text-surface transition-colors hover:bg-surface/25"
               >
                 ←
               </button>
@@ -140,7 +152,7 @@ export function GalleryLightbox({ fotos, titulo }: { fotos: PropiedadFoto[]; tit
                   mover(1)
                 }}
                 aria-label="Foto siguiente"
-                className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/10 text-xl text-surface transition-colors hover:bg-surface/25"
+                className="pointer-events-auto absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/10 text-xl text-surface transition-colors hover:bg-surface/25"
               >
                 →
               </button>

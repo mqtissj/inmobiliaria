@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 /*
   Arrastrar y soltar SIN librerías: los eventos dragover/drop del navegador
@@ -54,11 +54,13 @@ export function PhotoDropzone({
     onChange(fotos.filter((_, j) => j !== i))
   }
 
-  // Liberar las previews al desmontar (los object URLs no se limpian solos)
-  useEffect(() => {
-    return () => fotos.forEach((f) => URL.revokeObjectURL(f.preview))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  /*
+    Los object URLs de las previews NO se liberan acá.
+    Los libera PropertyForm, que es quien tiene el estado `fotos`: este
+    componente se desmonta y se vuelve a montar cada vez que un intento de
+    guardado falla (el <form> se remonta por `key`), y si la limpieza viviera
+    acá, cada error dejaría las miniaturas rotas con las fotos todavía elegidas.
+  */
 
   return (
     <div>
@@ -67,7 +69,17 @@ export function PhotoDropzone({
         tabIndex={0}
         aria-label="Agregar fotos"
         onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
+        // Un <div role="button"> NO sintetiza el clic desde el teclado — eso lo
+        // hace solo un <button> de verdad. Y la barra espaciadora es la tecla
+        // que la mayoría prueba primero. Sin esto, quien navega con teclado no
+        // puede subir fotos. preventDefault en el espacio: si no, la página
+        // scrollea abajo del formulario mientras se abre el explorador.
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            inputRef.current?.click()
+          }
+        }}
         onDragOver={(e) => {
           e.preventDefault()
           setArrastrando(true)

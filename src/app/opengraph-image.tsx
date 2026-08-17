@@ -1,12 +1,28 @@
 import { ImageResponse } from 'next/og'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
 /*
   Imagen que aparece al compartir el link por WhatsApp/Instagram (REGLAS §6:
   sin Open Graph, el link compartido es una URL pelada y nadie clickea).
-  Se genera acá mismo con los colores de PF — sin archivos externos.
-  ImageResponse solo soporta flexbox y fuentes propias por ArrayBuffer,
-  así que va tipografía default: alcanza para la tarjeta del link.
+  Para PF esto importa más que el SEO: WhatsApp ES el canal.
+
+  ImageResponse solo entiende flexbox, y las imágenes tienen que llegarle como
+  data URI — no puede salir a buscar un archivo por su cuenta. Por eso el logo
+  se lee del disco acá arriba, una sola vez cuando se carga el módulo, y se
+  incrusta en base64.
+
+  Se lee con readFile + process.cwd() porque es el patrón documentado en esta
+  versión de Next (node_modules/next/dist/docs/.../opengraph-image.md). Es
+  seguro en Vercel porque esta ruta se PRERENDERIZA en el build: el archivo se
+  lee mientras se compila, cuando src/app/icon.jpg está garantizado, y lo que
+  se despliega es el PNG ya hecho.
+
+  El mismo icon.jpg es el favicon del sitio: un solo archivo, una sola marca.
 */
+const logo = await readFile(join(process.cwd(), 'src/app/icon.jpg'))
+const logoDataUri = `data:image/jpeg;base64,${logo.toString('base64')}`
+
 export const alt = 'PF Negocios Inmobiliarios — propiedades en Tacuarembó'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
@@ -33,21 +49,23 @@ export default function Image() {
             gap: '24px',
           }}
         >
+          {/* El logo viene con fondo blanco, así que la caja blanca no es
+              decoración: es lo que evita que se vea un recuadro flotando
+              sobre el azul oscuro. */}
           <div
             style={{
-              width: '96px',
-              height: '96px',
-              borderRadius: '48px',
+              width: '148px',
+              height: '148px',
+              borderRadius: '20px',
               background: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '48px',
-              fontWeight: 700,
-              color: '#1c5fa6',
+              padding: '10px',
             }}
           >
-            PF
+            {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse no usa next/image */}
+            <img src={logoDataUri} width={128} height={128} alt="" />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: '56px', fontWeight: 700 }}>PF Negocios Inmobiliarios</div>

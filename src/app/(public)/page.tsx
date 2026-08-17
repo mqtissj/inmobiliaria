@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { linkWhatsApp } from '@/lib/format'
 import { getConfig, getFaqs, getPortadas, getPropiedadesPublicas } from '@/lib/queries'
-import { IDEAL_PARA } from '@/lib/types'
+import { CARACTERISTICAS_VALIDAS, IDEAL_PARA, TIPOS_PATIO } from '@/lib/types'
 import { ErrorBox } from '@/components/ui/ErrorBox'
 import { WhatsAppLink } from '@/components/ui/WhatsAppLink'
-import { FilterChips } from '@/components/propiedades/FilterChips'
+import { FilterPanel, resumenFiltros } from '@/components/propiedades/FilterPanel'
 import { PropertyCard } from '@/components/propiedades/PropertyCard'
 
 /*
@@ -15,40 +15,98 @@ import { PropertyCard } from '@/components/propiedades/PropertyCard'
 */
 export default async function Home(props: PageProps<'/'>) {
   const sp = await props.searchParams
-  const operacion = typeof sp.operacion === 'string' ? sp.operacion : undefined
-  const tipo = typeof sp.tipo === 'string' ? sp.tipo : undefined
+  const texto = (v: unknown) => (typeof v === 'string' ? v : undefined)
+  const operacion = texto(sp.operacion)
+  const tipo = texto(sp.tipo)
   // Number('abc') es NaN y NaN || undefined cae en undefined: un valor basura
   // en la URL simplemente no filtra, no rompe
-  const dormitorios =
-    typeof sp.dormitorios === 'string' ? Number(sp.dormitorios) || undefined : undefined
-  const mascotas = sp.mascotas === 'si'
+  const dormitorios = Number(texto(sp.dormitorios)) || undefined
+  const banos = Number(texto(sp.banos)) || undefined
+  // Mascotas es de tres estados: sin filtro, 'si' y 'no' (pedido del cliente,
+  // 17/8 — alguien con alergia también busca)
+  // El tipo va explícito: sin él, el ternario se ensancha a string y deja de
+  // encajar con el 'si' | 'no' que esperan la query y el panel.
+  const mascotas: 'si' | 'no' | undefined =
+    sp.mascotas === 'si' ? 'si' : sp.mascotas === 'no' ? 'no' : undefined
+  const patio =
+    typeof sp.patio === 'string' && (TIPOS_PATIO as readonly string[]).includes(sp.patio)
+      ? sp.patio
+      : undefined
+  // Vienen separadas por coma en la URL. Se filtran contra el vocabulario real:
+  // lo que no está en la lista no filtra (no rompe ni filtra mal).
+  const caracteristicas = (texto(sp.caract) ?? '')
+    .split(',')
+    .map((c) => c.trim())
+    .filter((c) => CARACTERISTICAS_VALIDAS.includes(c))
+  const garaje = sp.garaje === 'si'
   const ideal =
     typeof sp.ideal === 'string' && (IDEAL_PARA as readonly string[]).includes(sp.ideal)
       ? sp.ideal
       : undefined
 
+  const filtrosActuales = {
+    operacion,
+    tipo,
+    dormitorios,
+    banos,
+    patio,
+    caracteristicas,
+    garaje,
+    mascotas,
+    ideal,
+  }
+
   let contenido: React.ReactNode
   try {
     const [config, propiedades, todas, faqs] = await Promise.all([
       getConfig(),
-      getPropiedadesPublicas({ operacion, tipo, dormitorios, mascotas, idealPara: ideal }),
+      getPropiedadesPublicas({ ...filtrosActuales, idealPara: ideal }),
       getPropiedadesPublicas({}), // sin filtro, para derivar los chips disponibles
       getFaqs(),
     ])
     const portadas = await getPortadas(propiedades.map((p) => p.id))
     const tiposDisponibles = [...new Set(todas.map((p) => p.tipo))]
-    // Solo los valores realmente cargados; los campos/chacras tienen null y no cuentan
-    const dormitoriosDisponibles = [
-      ...new Set(todas.map((p) => p.dormitorios).filter((d): d is number => d != null)),
-    ].sort((a, b) => a - b)
+    // El select ofrece de 1 hasta la propiedad con más dormitorios (pedido del
+    // cliente, 17/8). Los campos y chacras tienen dormitorios en null y no cuentan;
+    // si NINGUNA propiedad tiene dormitorios, el máximo es 0 y el filtro no aparece.
+    const dormitoriosMax = todas.reduce(
+      (max, p) => (p.dormitorios != null && p.dormitorios > max ? p.dormitorios : max),
+      0
+    )
     // Mismo criterio para los filtros del 17/8: el chip existe si hay al menos
     // una propiedad que lo cumpla (?. porque ideal_para llega recién con el
     // SQL del 17/8 — hasta entonces, simplemente no hay chips)
     const hayTraspasos = todas.some((p) => p.operacion === 'traspaso')
-    const hayMascotas = todas.some((p) => p.acepta_mascotas)
     const idealesDisponibles = IDEAL_PARA.filter((v) =>
       todas.some((p) => p.ideal_para?.includes(v))
     )
+
+    /*
+      Lo mismo para los filtros detallados del 17/8: cada chip existe solo si
+      hay al menos una propiedad que lo cumpla. Los `?.` son a propósito —
+      hasta que se corra docs/sql/2026-08-17-filtros-detallados.sql las columnas
+      nuevas no vienen en la view, y esto tiene que no romper mientras tanto.
+    */
+    const banosMax = todas.reduce(
+      (max, p) => (p.banos != null && p.banos > max ? p.banos : max),
+      0
+    )
+    const patiosDisponibles = TIPOS_PATIO.filter((t) => todas.some((p) => p.patio === t))
+    const caracteristicasDisponibles = CARACTERISTICAS_VALIDAS.filter((c) =>
+      todas.some((p) => p.caracteristicas?.includes(c))
+    )
+    const disponibles = {
+      tipos: tiposDisponibles,
+      dormitoriosMax,
+      banosMax,
+      hayTraspasos,
+      patios: [...patiosDisponibles],
+      caracteristicas: caracteristicasDisponibles,
+      hayGaraje: todas.some((p) => p.garage === true),
+      hayMascotasSi: todas.some((p) => p.acepta_mascotas === true),
+      hayMascotasNo: todas.some((p) => p.acepta_mascotas === false),
+      ideales: [...idealesDisponibles],
+    }
 
     contenido = (
       <>
@@ -69,32 +127,15 @@ export default async function Home(props: PageProps<'/'>) {
         </section>
         <section className="border-b border-line-soft bg-surface">
           <div className="mx-auto max-w-6xl px-4 py-4">
-            <FilterChips
-              operacionActiva={operacion}
-              tipoActivo={tipo}
-              tiposDisponibles={tiposDisponibles}
-              dormitoriosActivo={dormitorios}
-              dormitoriosDisponibles={dormitoriosDisponibles}
-              hayTraspasos={hayTraspasos}
-              mascotasActivo={mascotas}
-              hayMascotas={hayMascotas}
-              idealActivo={ideal}
-              idealesDisponibles={idealesDisponibles}
-            />
+            <FilterPanel actual={filtrosActuales} disponibles={disponibles} />
           </div>
         </section>
 
         {/* Listado */}
         <section className="mx-auto max-w-6xl px-4 py-10">
           <p className="text-sm text-ink-faint">
-            {propiedades.length === 1
-              ? '1 propiedad'
-              : `${propiedades.length} propiedades`}
-            {operacion ? ` en ${operacion}` : ''}
-            {tipo ? ` · ${tipo}` : ''}
-            {dormitorios ? ` · ${dormitorios} ${dormitorios === 1 ? 'dormitorio' : 'dormitorios'}` : ''}
-            {ideal ? ` · para ${ideal}` : ''}
-            {mascotas ? ' · aceptan mascotas' : ''}
+            {propiedades.length === 1 ? '1 propiedad' : `${propiedades.length} propiedades`}
+            {resumenFiltros(filtrosActuales)}
           </p>
 
           {propiedades.length > 0 ? (

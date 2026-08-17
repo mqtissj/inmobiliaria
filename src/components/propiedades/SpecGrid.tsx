@@ -1,4 +1,4 @@
-import { esAlquilerOTraspaso, esRural } from '@/lib/types'
+import { esAlquilerOTraspaso, esRural, etiquetaCaracteristica } from '@/lib/types'
 import type { Propiedad } from '@/lib/types'
 
 /*
@@ -51,6 +51,17 @@ function filas(p: Propiedad): { etiqueta: string; valor: string }[] {
       etiqueta: 'Ideal para',
       valor: p.ideal_para.map((v) => v.charAt(0).toUpperCase() + v.slice(1)).join(' / '),
     })
+
+  // Filtros detallados del 17/8. Solo urbanas: un campo no tiene parrillero.
+  if (!esRural(p.tipo)) {
+    if (p.patio) out.push({ etiqueta: 'Patio', valor: p.patio === 'abierto' ? 'Abierto' : 'Cerrado' })
+    // Agrupadas en una sola fila para no llenar la ficha de "Parrillero: Sí"
+    if (p.caracteristicas && p.caracteristicas.length > 0)
+      out.push({
+        etiqueta: 'Tiene',
+        valor: p.caracteristicas.map(etiquetaCaracteristica).join(' · '),
+      })
+  }
 
   return out
 }

@@ -1,6 +1,6 @@
 import { cache } from 'react'
 import { supabase } from './supabase'
-import { IDEAL_PARA, OPERACIONES } from './types'
+import { CARACTERISTICAS_VALIDAS, IDEAL_PARA, OPERACIONES, TIPOS_PATIO } from './types'
 import type { ConfigNegocio, Faq, Propiedad, PropiedadFoto } from './types'
 
 /*
@@ -29,8 +29,14 @@ export interface FiltrosListado {
   operacion?: string
   tipo?: string
   dormitorios?: number
-  mascotas?: boolean
+  /** 'si' | 'no' — el cliente pidió poder buscar las DOS cosas, no solo las que aceptan */
+  mascotas?: 'si' | 'no'
   idealPara?: string
+  banos?: number
+  patio?: string
+  /** Vale más de una a la vez, y suman: pedir parrillero Y barbacoa trae las que tienen ambas */
+  caracteristicas?: string[]
+  garaje?: boolean
 }
 
 export const getPropiedadesPublicas = cache(async (filtros: FiltrosListado = {}): Promise<Propiedad[]> => {
@@ -49,19 +55,50 @@ export const getPropiedadesPublicas = cache(async (filtros: FiltrosListado = {})
     query = query.eq('tipo', filtros.tipo)
   }
   // Pedido del cliente (15/8): poder filtrar por cantidad de dormitorios.
-  // eq exacto: los chips se derivan de los valores realmente cargados, así
-  // que nunca se ofrece un número sin resultados.
+  // eq exacto: "2 dormitorios" trae las de 2, no las de 2 o más.
+  // Desde el 17/8 el filtro es un select de 1 al máximo cargado, así que SÍ se
+  // puede elegir una cantidad sin resultados (p. ej. 1 si todas tienen 2): en
+  // ese caso la home muestra el estado vacío con el WhatsApp para avisar.
   if (filtros.dormitorios) {
     query = query.eq('dormitorios', filtros.dormitorios)
   }
   // Pedidos del cliente (17/8): mascotas y público ideal.
-  if (filtros.mascotas) {
+  // Mascotas es de TRES estados, no dos: sin filtro trae todo, 'no' trae
+  // explícitamente las que NO aceptan (alguien con alergia también busca).
+  // Las que tienen el dato en null no entran en ninguno de los dos: no sabemos.
+  if (filtros.mascotas === 'si') {
     query = query.eq('acepta_mascotas', true)
+  } else if (filtros.mascotas === 'no') {
+    query = query.eq('acepta_mascotas', false)
   }
   // contains porque ideal_para es un array: una casa puede servir para
   // familia Y pareja, y tiene que aparecer en los dos filtros.
   if (filtros.idealPara && (IDEAL_PARA as readonly string[]).includes(filtros.idealPara)) {
     query = query.contains('ideal_para', [filtros.idealPara])
+  }
+
+  /*
+    Filtros detallados (17/8, segunda tanda).
+    Ver docs/sql/2026-08-17-filtros-detallados.sql.
+  */
+  if (filtros.banos) {
+    query = query.eq('banos', filtros.banos)
+  }
+  if (filtros.patio && (TIPOS_PATIO as readonly string[]).includes(filtros.patio)) {
+    query = query.eq('patio', filtros.patio)
+  }
+  // Un solo contains con todas: en Postgres `caracteristicas @> ['a','b']` es
+  // "las tiene a las dos". Marcar parrillero y barbacoa achica la búsqueda,
+  // no la agranda — que es lo que espera quien usa filtros.
+  if (filtros.caracteristicas && filtros.caracteristicas.length > 0) {
+    const validas = filtros.caracteristicas.filter((c) => CARACTERISTICAS_VALIDAS.includes(c))
+    if (validas.length > 0) query = query.contains('caracteristicas', validas)
+  }
+  // El garaje viaja aparte de las características porque es una columna propia
+  // que existe desde F0 (la nota completa está en el SQL). Para quien mira la
+  // web es un chip más, al lado de "Cochera".
+  if (filtros.garaje) {
+    query = query.eq('garage', true)
   }
 
   const { data, error } = await query

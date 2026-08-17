@@ -44,6 +44,39 @@ body {
   background: var(--color-pf-blue-soft);
 }
 
+/*
+  Campos de 16px en el celular, aunque el diseño los quiera de 14.
+
+  Safari en iPhone hace zoom automático al enfocar cualquier input, select o
+  textarea de MENOS de 16px — y no deshace el zoom al salir del campo. La
+  persona toca "Tu nombre", la página queda agrandada, y de ahí en más navega
+  con scroll horizontal. En una web donde casi todo el tráfico entra desde el
+  celular, eso se ve descuidado.
+
+  Va acá y no clase por clase porque ya estaba puesto (o faltando) en cuatro
+  archivos distintos: los dos formularios de /contacto, el select de
+  dormitorios y el formulario del panel. Uno solo, y no vuelve a divergir.
+
+  Desde 40rem (sm) recupera el tamaño del diseño: en escritorio no cambia nada.
+  NO se toca maximum-scale ni user-scalable: romper el zoom manual del usuario
+  es una barrera de accesibilidad peor que el problema que arregla.
+*/
+@layer base {
+  input,
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+
+  @media (min-width: 40rem) {
+    input,
+    select,
+    textarea {
+      font-size: inherit;
+    }
+  }
+}
+
 /* Entrada suave del lightbox — solo si el sistema no pide menos movimiento
    (el componente la aplica con motion-safe:) */
 @keyframes aparecer {

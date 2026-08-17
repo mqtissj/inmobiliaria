@@ -32,24 +32,41 @@ export function CitaForm({ whatsapp, propInicial = '' }: { whatsapp: string; pro
   const [propiedad, setPropiedad] = useState(propInicial)
   const [franja, setFranja] = useState(FRANJAS[0])
 
-  const enviar = (e: React.FormEvent) => {
-    e.preventDefault()
-    const lineas = [
-      'Hola! Quiero agendar una cita.',
-      nombre.trim() && `Soy ${nombre.trim()}.`,
-      `Motivo: ${motivo.toLowerCase()}`,
-      propiedad.trim() && `Propiedad: ${propiedad.trim()}`,
-      `Me queda mejor: ${franja.toLowerCase()}.`,
-    ].filter(Boolean)
-    window.open(
-      `https://wa.me/${whatsapp}?text=${encodeURIComponent(lineas.join('\n'))}`,
-      '_blank',
-      'noopener,noreferrer'
-    )
-  }
+  /*
+    El botón es un LINK, igual que en PropietarioForm y por los mismos dos
+    motivos, que acá se juntaban y lo dejaban del todo muerto (17/8):
+
+    1. window.open() con un tercer argumento de "features" se trata como POPUP
+       y los bloqueadores lo cortan sin avisar.
+    2. El campo del nombre era `required`. Con el campo vacío el navegador
+       frenaba el envío y el handler NI SE EJECUTABA — la validación nativa
+       gana antes que React. Sobre el bloque azul, además, el globito de
+       validación casi no se ve.
+
+    Ya no hace falta que sea obligatorio: el mensaje se arma igual sin nombre
+    (la línea simplemente no aparece), y quien responde el WhatsApp lo pregunta.
+    Vale más una cita pedida sin nombre que un botón que no hace nada.
+  */
+  const lineas = [
+    'Hola! Quiero agendar una cita.',
+    nombre.trim() && `Soy ${nombre.trim()}.`,
+    `Motivo: ${motivo.toLowerCase()}`,
+    propiedad.trim() && `Propiedad: ${propiedad.trim()}`,
+    `Me queda mejor: ${franja.toLowerCase()}.`,
+  ].filter(Boolean)
+  const href = `https://wa.me/${whatsapp}?text=${encodeURIComponent(lineas.join('\n'))}`
 
   return (
-    <form onSubmit={enviar}>
+    // Enter por onKeyDown y no por onSubmit: sin botón submit el formulario no
+    // tiene envío implícito, así que un onSubmit sería código muerto.
+    <form
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+          e.preventDefault()
+          window.location.href = href
+        }
+      }}
+    >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label htmlFor="cita-nombre" className={claseLabel}>
@@ -59,7 +76,6 @@ export function CitaForm({ whatsapp, propInicial = '' }: { whatsapp: string; pro
             id="cita-nombre"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
-            required
             placeholder="Para saber con quién hablamos"
             className={claseInput}
           />
@@ -103,15 +119,17 @@ export function CitaForm({ whatsapp, propInicial = '' }: { whatsapp: string; pro
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-4">
-        <button
-          type="submit"
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center gap-2 rounded-md bg-surface px-5 py-2.5 text-sm font-semibold text-pf-blue transition-colors hover:bg-pf-blue-soft"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
             <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.5.2-.7l.4-.5c.1-.2.2-.3.3-.5v-.5c0-.1-.6-1.4-.8-1.9-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.8 2.8 4.4 3.9.6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2l-.3-.3Z" />
           </svg>
           Pedir la cita por WhatsApp
-        </button>
+        </a>
         <p className="text-xs text-surface/70">
           Te confirma día y hora una persona del equipo. Esta web no guarda nada de lo que escribiste.
         </p>

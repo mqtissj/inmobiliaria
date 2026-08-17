@@ -20,6 +20,54 @@ export function esAlquilerOTraspaso(operacion: string): boolean {
 // dos valores (guardrail estructural) — si se agrega uno acá, va también en SQL.
 export const IDEAL_PARA = ['familia', 'pareja'] as const
 
+/*
+  Filtros detallados pedidos por el cliente el 17/8/2026.
+
+  El patio va aparte porque no es un sí/no: son tres estados (no tiene, abierto,
+  cerrado) y el cliente quiere filtrar por el tipo.
+*/
+export const TIPOS_PATIO = ['abierto', 'cerrado'] as const
+export type TipoPatio = (typeof TIPOS_PATIO)[number]
+
+/*
+  El resto son banderas y viven en un solo array `caracteristicas`.
+  ESTA LISTA ESPEJA EL CHECK DE LA BASE (docs/sql/2026-08-17-filtros-detallados).
+  Si agregás una acá, agregala también en SQL o la base va a rechazar el guardado.
+
+  Se agrupan para pintarlas en la web y en el panel con los mismos títulos que
+  usó el cliente. `garaje` NO está en la lista: es la columna `garage`, que ya
+  existía desde F0 (ver la nota del SQL) y se consulta aparte.
+*/
+export const CARACTERISTICAS = {
+  Exterior: [
+    { valor: 'fondo', etiqueta: 'Fondo' },
+    { valor: 'parrillero', etiqueta: 'Parrillero' },
+    { valor: 'barbacoa', etiqueta: 'Barbacoa' },
+  ],
+  Cochera: [{ valor: 'cochera', etiqueta: 'Cochera' }],
+  Comodidades: [
+    { valor: 'aire_acondicionado', etiqueta: 'Aire acondicionado' },
+    { valor: 'calefaccion', etiqueta: 'Calefacción' },
+    { valor: 'estufa_lena', etiqueta: 'Estufa a leña' },
+    { valor: 'calefon', etiqueta: 'Calefón' },
+    { valor: 'placares', etiqueta: 'Placares' },
+  ],
+  Baño: [{ valor: 'bano_completo', etiqueta: 'Baño completo' }],
+} as const
+
+/** Todas las características válidas, aplanadas. Es lo que valida la URL. */
+export const CARACTERISTICAS_VALIDAS: readonly string[] = Object.values(CARACTERISTICAS)
+  .flat()
+  .map((c) => c.valor)
+
+/** La etiqueta linda de una característica, para la ficha y los chips activos. */
+export function etiquetaCaracteristica(valor: string): string {
+  const encontrada = Object.values(CARACTERISTICAS)
+    .flat()
+    .find((c) => c.valor === valor)
+  return encontrada?.etiqueta ?? valor
+}
+
 // `tipo` es texto libre en la base; este es el vocabulario que usa el formulario del panel
 export const TIPOS_PROPIEDAD = ['casa', 'apartamento', 'campo', 'chacra', 'terreno', 'local', 'galpón'] as const
 export type TipoPropiedad = (typeof TIPOS_PROPIEDAD)[number] | (string & {})
@@ -71,6 +119,9 @@ export interface Propiedad {
   acepta_mascotas: boolean | null
   // en la view pública puede no venir hasta correr docs/sql/2026-08-17
   ideal_para: string[] | null
+  // filtros detallados del 17/8 (docs/sql/2026-08-17-filtros-detallados)
+  patio: TipoPatio | null
+  caracteristicas: string[] | null
   destacada: boolean
   creado_en: string
   actualizado_en: string

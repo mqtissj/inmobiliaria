@@ -5,9 +5,11 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import {
+  CARACTERISTICAS,
   esAlquilerOTraspaso,
   esRural,
   IDEAL_PARA,
+  TIPOS_PATIO,
   TIPOS_PROPIEDAD,
   type Propiedad,
   type PropiedadFoto,
@@ -37,9 +39,19 @@ const estadoInicial: EstadoGuardar = { error: null }
 
 // Garantías que se manejan en Uruguay + las aseguradoras con las que trabaja
 // PF (MAPFRE, Porto Seguro y Sancor dictadas por el cliente el 17/8; SURA
-// queda de su Instagram hasta que confirme si sigue). PF NO trabaja con
-// depósito — por eso no es opción acá.
-const GARANTIAS = ['ANDA', 'Contaduría (CGN)', 'Garantía propietaria', 'MAPFRE', 'Porto Seguro', 'Sancor', 'SURA']
+// queda de su Instagram hasta que confirme si sigue).
+// El DEPÓSITO se agregó el 17/8 a la tarde: el cliente corrigió que sí trabajan
+// con depósito, al revés de lo que se había dicho a la mañana.
+const GARANTIAS = [
+  'ANDA',
+  'Contaduría (CGN)',
+  'Garantía propietaria',
+  'Depósito',
+  'MAPFRE',
+  'Porto Seguro',
+  'Sancor',
+  'SURA',
+]
 
 const claseInput =
   'mt-1 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-pf-blue'
@@ -81,6 +93,41 @@ export function PropertyForm({
   const yaProceso = useRef(false)
 
   const rural = esRural(tipo)
+
+  /*
+    Repoblado después de un intento fallido.
+    React 19 resetea el <form> en CADA envío (ver el comentario de EstadoGuardar
+    en ../actions): pide el reset antes de correr la action y lo aplica al
+    terminar, salga bien o mal. Como casi todos los campos de acá son no
+    controlados, sin esto un error de validación borraba todo lo cargado — y en
+    la edición devolvía los valores viejos de la base.
+    La action fallida devuelve `intento` + `valores`. El `key={intento}` de abajo
+    remonta el <form> y estos tres helpers le dan como defaults lo último
+    enviado. Remontar es además lo que arregla los <select>: cambiarle el
+    defaultValue a un select ya montado no mueve la opción seleccionada.
+  */
+  const v = (campo: string) => estado.valores?.simples[campo]
+  // Un checkbox destildado NO viaja en el FormData. Por eso, si hubo intento,
+  // "no está" significa destildado: no hay que caer al valor de la propiedad.
+  const marcado = (campo: string, siNoHuboIntento: boolean | null | undefined) =>
+    estado.valores ? estado.valores.simples[campo] === 'on' : !!siNoHuboIntento
+  const enLista = (
+    campo: 'tipos_garantia' | 'ideal_para' | 'caracteristicas',
+    valor: string,
+    siNoHuboIntento?: boolean
+  ) => (estado.valores ? estado.valores.listas[campo].includes(valor) : !!siNoHuboIntento)
+
+  /*
+    Los blob: de las miniaturas los libera ACÁ, que es quien tiene el estado.
+    Antes esa limpieza vivía dentro de PhotoDropzone, pero ahora el <form> se
+    remonta en cada intento fallido: si siguiera en el hijo, cada error revocaría
+    las previews y las fotos elegidas quedarían como miniaturas rotas.
+  */
+  const fotosVigentes = useRef<FotoElegida[]>([])
+  useEffect(() => {
+    fotosVigentes.current = fotos
+  }, [fotos])
+  useEffect(() => () => fotosVigentes.current.forEach((f) => URL.revokeObjectURL(f.preview)), [])
 
   // Al confirmar la action: subir las fotos nuevas y volver al listado.
   useEffect(() => {
@@ -129,7 +176,26 @@ export function PropertyForm({
       router.refresh()
     }
 
-    subirFotosNuevas()
+    /*
+      El catch NO es decorativo: sin él, cualquier excepción acá adentro (se
+      cortó internet en medio de una subida, el bucket rechazó el archivo,
+      registrarFotos falló) dejaba `subiendo` pegado en un texto para siempre.
+      Y como el botón usa `disabled={enviando || subiendo !== null}`, el usuario
+      quedaba mirando "Subiendo foto 2 de 5…" con el botón muerto y la
+      propiedad YA GUARDADA en la base — sin forma de salir salvo recargar,
+      creyendo que no se guardó nada.
+
+      La propiedad ya está creada en este punto, así que el error solo afecta a
+      las fotos: se avisa y se sigue al listado, que es lo que el usuario quiere.
+    */
+    subirFotosNuevas().catch((e) => {
+      console.error('[PropertyForm] falló la subida de fotos:', e)
+      setSubiendo(null)
+      setErrorFotos(
+        'La propiedad se guardó, pero las fotos no se pudieron subir. Entrá a editarla y probá de nuevo.'
+      )
+      yaProceso.current = false
+    })
   }, [estado.ok, fotos, actuales.length, editando, router])
 
   const quitarExistente = (foto: PropiedadFoto) => {
@@ -148,7 +214,9 @@ export function PropertyForm({
   const ocupado = enviando || subiendo !== null
 
   return (
-    <form action={accion} className="space-y-5">
+    // key = intento: cada fallo remonta el formulario con lo enviado como
+    // defaults, en vez de dejar que el reset de React lo vacíe.
+    <form key={estado.intento ?? 0} action={accion} className="space-y-5">
       {editando && (
         <>
           <input type="hidden" name="id" value={propiedad.id} />
@@ -179,8 +247,12 @@ export function PropertyForm({
               id="codigo"
               name="codigo"
               required
+              // Mismo regex que valida el servidor (actions.ts). Repetirlo acá
+              // no reemplaza al del servidor: evita el viaje de ida y vuelta.
+              pattern="[A-Za-z0-9\-]{2,20}"
+              title="Entre 2 y 20 caracteres: letras, números y guiones (ej.: TB-005)"
               placeholder="TB-005"
-              defaultValue={propiedad?.codigo}
+              defaultValue={v('codigo') ?? propiedad?.codigo}
               className={claseInput}
             />
           </div>
@@ -193,7 +265,7 @@ export function PropertyForm({
               name="titulo"
               required
               placeholder="Casa 3 dormitorios con fondo"
-              defaultValue={propiedad?.titulo}
+              defaultValue={v('titulo') ?? propiedad?.titulo}
               className={claseInput}
             />
           </div>
@@ -238,7 +310,7 @@ export function PropertyForm({
             <select
               id="estado"
               name="estado"
-              defaultValue={propiedad?.estado ?? 'disponible'}
+              defaultValue={v('estado') ?? propiedad?.estado ?? 'disponible'}
               className={claseInput}
             >
               <option value="disponible">Disponible (se ve en la web)</option>
@@ -251,7 +323,7 @@ export function PropertyForm({
             <input
               type="checkbox"
               name="destacada"
-              defaultChecked={propiedad?.destacada}
+              defaultChecked={marcado('destacada', propiedad?.destacada)}
               className="h-4 w-4 accent-pf-blue"
             />
             Destacada (aparece primera en la web)
@@ -268,7 +340,7 @@ export function PropertyForm({
             <input
               id="ciudad"
               name="ciudad"
-              defaultValue={propiedad?.ciudad ?? 'Tacuarembó'}
+              defaultValue={v('ciudad') ?? propiedad?.ciudad ?? 'Tacuarembó'}
               className={claseInput}
             />
           </div>
@@ -280,7 +352,7 @@ export function PropertyForm({
               id="barrio"
               name="barrio"
               placeholder="Centro, López, Ruta 26…"
-              defaultValue={propiedad?.barrio ?? ''}
+              defaultValue={v('barrio') ?? propiedad?.barrio ?? ''}
               className={claseInput}
             />
           </div>
@@ -291,14 +363,14 @@ export function PropertyForm({
             <input
               id="direccion"
               name="direccion"
-              defaultValue={propiedad?.direccion ?? ''}
+              defaultValue={v('direccion') ?? propiedad?.direccion ?? ''}
               className={claseInput}
             />
             <label className={`${claseCheck} mt-2`}>
               <input
                 type="checkbox"
                 name="mostrar_direccion"
-                defaultChecked={propiedad?.mostrar_direccion}
+                defaultChecked={marcado('mostrar_direccion', propiedad?.mostrar_direccion)}
                 className="h-4 w-4 accent-pf-blue"
               />
               Mostrar la dirección exacta en la web (si no, se coordina por WhatsApp)
@@ -318,7 +390,7 @@ export function PropertyForm({
               name="precio"
               inputMode="numeric"
               placeholder="135000"
-              defaultValue={propiedad?.precio ?? ''}
+              defaultValue={v('precio') ?? propiedad?.precio ?? ''}
               className={claseInput}
             />
           </div>
@@ -326,7 +398,12 @@ export function PropertyForm({
             <label htmlFor="moneda" className={claseLabel}>
               Moneda
             </label>
-            <select id="moneda" name="moneda" defaultValue={propiedad?.moneda ?? 'USD'} className={claseInput}>
+            <select
+              id="moneda"
+              name="moneda"
+              defaultValue={v('moneda') ?? propiedad?.moneda ?? 'USD'}
+              className={claseInput}
+            >
               <option value="USD">USD (dólares)</option>
               <option value="UYU">UYU (pesos)</option>
             </select>
@@ -339,7 +416,7 @@ export function PropertyForm({
               id="gastos_comunes"
               name="gastos_comunes"
               inputMode="numeric"
-              defaultValue={propiedad?.gastos_comunes ?? ''}
+              defaultValue={v('gastos_comunes') ?? propiedad?.gastos_comunes ?? ''}
               className={claseInput}
             />
           </div>
@@ -348,7 +425,7 @@ export function PropertyForm({
           <input
             type="checkbox"
             name="precio_publico"
-            defaultChecked={propiedad ? propiedad.precio_publico : true}
+            defaultChecked={marcado('precio_publico', propiedad ? propiedad.precio_publico : true)}
             className="h-4 w-4 accent-pf-blue"
           />
           Publicar el precio (si lo destildás, la web y el asistente dicen “consultar” — el número
@@ -368,7 +445,7 @@ export function PropertyForm({
                 name="hectareas"
                 inputMode="decimal"
                 placeholder="120"
-                defaultValue={propiedad?.hectareas ?? ''}
+                defaultValue={v('hectareas') ?? propiedad?.hectareas ?? ''}
                 className={claseInput}
               />
             </div>
@@ -381,7 +458,7 @@ export function PropertyForm({
                 name="indice_coneat"
                 inputMode="numeric"
                 placeholder="98"
-                defaultValue={propiedad?.indice_coneat ?? ''}
+                defaultValue={v('indice_coneat') ?? propiedad?.indice_coneat ?? ''}
                 className={claseInput}
               />
             </div>
@@ -389,20 +466,25 @@ export function PropertyForm({
               <label htmlFor="padron" className={claseLabel}>
                 Padrón
               </label>
-              <input id="padron" name="padron" defaultValue={propiedad?.padron ?? ''} className={claseInput} />
+              <input
+                id="padron"
+                name="padron"
+                defaultValue={v('padron') ?? propiedad?.padron ?? ''}
+                className={claseInput}
+              />
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-5">
             <label className={claseCheck}>
-              <input type="checkbox" name="tiene_agua" defaultChecked={!!propiedad?.tiene_agua} className="h-4 w-4 accent-pf-blue" />
+              <input type="checkbox" name="tiene_agua" defaultChecked={marcado('tiene_agua', propiedad?.tiene_agua)} className="h-4 w-4 accent-pf-blue" />
               Tiene agua
             </label>
             <label className={claseCheck}>
-              <input type="checkbox" name="tiene_luz" defaultChecked={!!propiedad?.tiene_luz} className="h-4 w-4 accent-pf-blue" />
+              <input type="checkbox" name="tiene_luz" defaultChecked={marcado('tiene_luz', propiedad?.tiene_luz)} className="h-4 w-4 accent-pf-blue" />
               Tiene luz
             </label>
             <label className={claseCheck}>
-              <input type="checkbox" name="alambrado" defaultChecked={!!propiedad?.alambrado} className="h-4 w-4 accent-pf-blue" />
+              <input type="checkbox" name="alambrado" defaultChecked={marcado('alambrado', propiedad?.alambrado)} className="h-4 w-4 accent-pf-blue" />
               Alambrado
             </label>
           </div>
@@ -414,50 +496,112 @@ export function PropertyForm({
               <label htmlFor="dormitorios" className={claseLabel}>
                 Dormitorios
               </label>
-              <input id="dormitorios" name="dormitorios" inputMode="numeric" defaultValue={propiedad?.dormitorios ?? ''} className={claseInput} />
+              <input id="dormitorios" name="dormitorios" inputMode="numeric" defaultValue={v('dormitorios') ?? propiedad?.dormitorios ?? ''} className={claseInput} />
             </div>
             <div>
               <label htmlFor="banos" className={claseLabel}>
                 Baños
               </label>
-              <input id="banos" name="banos" inputMode="numeric" defaultValue={propiedad?.banos ?? ''} className={claseInput} />
+              <input id="banos" name="banos" inputMode="numeric" defaultValue={v('banos') ?? propiedad?.banos ?? ''} className={claseInput} />
             </div>
             <div>
               <label htmlFor="plantas" className={claseLabel}>
                 Plantas
               </label>
-              <input id="plantas" name="plantas" inputMode="numeric" defaultValue={propiedad?.plantas ?? ''} className={claseInput} />
+              <input id="plantas" name="plantas" inputMode="numeric" defaultValue={v('plantas') ?? propiedad?.plantas ?? ''} className={claseInput} />
             </div>
             <div>
               <label htmlFor="m2_edificados" className={claseLabel}>
                 M² edificados
               </label>
-              <input id="m2_edificados" name="m2_edificados" inputMode="decimal" defaultValue={propiedad?.m2_edificados ?? ''} className={claseInput} />
+              <input id="m2_edificados" name="m2_edificados" inputMode="decimal" defaultValue={v('m2_edificados') ?? propiedad?.m2_edificados ?? ''} className={claseInput} />
             </div>
             <div>
               <label htmlFor="m2_terreno" className={claseLabel}>
                 M² de terreno
               </label>
-              <input id="m2_terreno" name="m2_terreno" inputMode="decimal" defaultValue={propiedad?.m2_terreno ?? ''} className={claseInput} />
+              <input id="m2_terreno" name="m2_terreno" inputMode="decimal" defaultValue={v('m2_terreno') ?? propiedad?.m2_terreno ?? ''} className={claseInput} />
             </div>
-            <label className={`${claseCheck} mt-6`}>
-              <input type="checkbox" name="garage" defaultChecked={!!propiedad?.garage} className="h-4 w-4 accent-pf-blue" />
-              Garaje
-            </label>
+            {/* El garaje se movió abajo, al grupo "Cochera" (17/8) */}
           </div>
+          {/* Exterior, cochera y comodidades: alimentan los filtros que pidió
+              el cliente el 17/8. Cada uno tildado acá es un chip que aparece
+              solo en la web — si ninguna propiedad tiene parrillero, no hay
+              filtro de parrillero. */}
+          <div className="mt-5 border-t border-line-soft pt-4">
+            <div className="max-w-xs">
+              <label htmlFor="patio" className={claseLabel}>
+                Patio
+              </label>
+              <select
+                id="patio"
+                name="patio"
+                defaultValue={v('patio') ?? propiedad?.patio ?? ''}
+                className={claseInput}
+              >
+                <option value="">No tiene patio</option>
+                {TIPOS_PATIO.map((t) => (
+                  <option key={t} value={t}>
+                    Patio {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {(Object.keys(CARACTERISTICAS) as (keyof typeof CARACTERISTICAS)[]).map((grupo) => (
+              <div key={grupo} className="mt-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+                  {grupo}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
+                  {CARACTERISTICAS[grupo].map((c) => (
+                    <label key={c.valor} className={claseCheck}>
+                      <input
+                        type="checkbox"
+                        name="caracteristicas"
+                        value={c.valor}
+                        defaultChecked={enLista(
+                          'caracteristicas',
+                          c.valor,
+                          propiedad?.caracteristicas?.includes(c.valor)
+                        )}
+                        className="h-4 w-4 accent-pf-blue"
+                      />
+                      {c.etiqueta}
+                    </label>
+                  ))}
+                  {/* El garaje vive en su propia columna desde F0, por eso está
+                      acá suelto y no en la lista de arriba. En la web se ve
+                      junto a "Cochera" igual. */}
+                  {grupo === 'Cochera' && (
+                    <label className={claseCheck}>
+                      <input
+                        type="checkbox"
+                        name="garage"
+                        defaultChecked={marcado('garage', propiedad?.garage)}
+                        className="h-4 w-4 accent-pf-blue"
+                      />
+                      Garaje
+                    </label>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Alimenta el filtro "Para familia / Para pareja" de la web (pedido
               del cliente, 17/8). Pueden ir las dos: no son excluyentes. */}
-          <div className="mt-3 flex flex-wrap gap-5">
-            {IDEAL_PARA.map((v) => (
-              <label key={v} className={claseCheck}>
+          <div className="mt-4 border-t border-line-soft pt-4 flex flex-wrap gap-5">
+            {IDEAL_PARA.map((valor) => (
+              <label key={valor} className={claseCheck}>
                 <input
                   type="checkbox"
                   name="ideal_para"
-                  value={v}
-                  defaultChecked={propiedad?.ideal_para?.includes(v)}
+                  value={valor}
+                  defaultChecked={enLista('ideal_para', valor, propiedad?.ideal_para?.includes(valor))}
                   className="h-4 w-4 accent-pf-blue"
                 />
-                Ideal para {v}
+                Ideal para {valor}
               </label>
             ))}
           </div>
@@ -470,7 +614,7 @@ export function PropertyForm({
             <input
               type="checkbox"
               name="requiere_garantia"
-              defaultChecked={propiedad ? !!propiedad.requiere_garantia : true}
+              defaultChecked={marcado('requiere_garantia', propiedad ? propiedad.requiere_garantia : true)}
               className="h-4 w-4 accent-pf-blue"
             />
             Requiere garantía
@@ -482,7 +626,7 @@ export function PropertyForm({
                   type="checkbox"
                   name="tipos_garantia"
                   value={g}
-                  defaultChecked={propiedad?.tipos_garantia?.includes(g)}
+                  defaultChecked={enLista('tipos_garantia', g, propiedad?.tipos_garantia?.includes(g))}
                   className="h-4 w-4 accent-pf-blue"
                 />
                 {g}
@@ -493,7 +637,7 @@ export function PropertyForm({
             <input
               type="checkbox"
               name="acepta_mascotas"
-              defaultChecked={!!propiedad?.acepta_mascotas}
+              defaultChecked={marcado('acepta_mascotas', propiedad?.acepta_mascotas)}
               className="h-4 w-4 accent-pf-blue"
             />
             Acepta mascotas
@@ -506,7 +650,7 @@ export function PropertyForm({
           name="descripcion"
           rows={4}
           placeholder="Lo que le contarías a un interesado: estado, entorno, qué la hace valer la pena…"
-          defaultValue={propiedad?.descripcion ?? ''}
+          defaultValue={v('descripcion') ?? propiedad?.descripcion ?? ''}
           className={claseInput}
         />
       </Seccion>

@@ -26,8 +26,8 @@ export default async function Contacto(props: PageProps<'/contacto'>) {
       <h1 className="font-display text-3xl font-semibold text-pf-navy">Contacto</h1>
       <p className="mt-2 max-w-lg text-ink-soft">
         Somos {config.nombre}: trabajamos propiedades urbanas y rurales de Tacuarembó desde 2021.
-        Para alquilar aceptamos garantías de MAPFRE, Porto Seguro, Sancor y SURA — no trabajamos
-        con depósito.
+        Para alquilar aceptamos garantías de MAPFRE, Porto Seguro, Sancor y SURA, y según el
+        propietario también ANDA, Contaduría (CGN), garantía propietaria o depósito.
       </p>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_1fr]">
@@ -69,8 +69,9 @@ export default async function Contacto(props: PageProps<'/contacto'>) {
           </div>
         </div>
 
-        {/* Propietarios: la sección que le trae negocio a PF */}
-        <div className="rounded-lg border border-line-soft bg-surface p-6">
+        {/* Propietarios: la sección que le trae negocio a PF.
+            El id lo usa el botón "Propietario" de los filtros de la home. */}
+        <div id="propietarios" className="scroll-mt-20 rounded-lg border border-line-soft bg-surface p-6">
           <h2 className="font-display text-lg font-semibold text-pf-navy">
             ¿Tenés una propiedad para vender o alquilar?
           </h2>

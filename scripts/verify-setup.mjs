@@ -117,5 +117,79 @@ await admin.from('propiedades').update({ precio: 350000 }).eq('codigo', 'TB-004'
   }
 }
 
+// ---------- 4. Límite de intentos (docs/sql/2026-08-17-rate-limit.sql) ----------
+// Si esto falla, falta correr ese SQL en el SQL Editor.
+{
+  // Clave única por corrida: el test no puede pisar contadores reales
+  const clave = [`verify:${Date.now()}`]
+
+  const primera = await admin.rpc('registrar_intento', {
+    p_claves: clave,
+    p_limite: 2,
+    p_ventana_minutos: 15,
+  })
+  check(
+    'existe la función registrar_intento',
+    !primera.error,
+    primera.error?.message ?? ''
+  )
+
+  if (!primera.error) {
+    const fila = (d) => (Array.isArray(d) ? d[0] : d)
+    check('primer intento permitido', fila(primera.data)?.permitido === true)
+
+    await admin.rpc('registrar_intento', { p_claves: clave, p_limite: 2, p_ventana_minutos: 15 })
+    const tercera = await admin.rpc('registrar_intento', {
+      p_claves: clave,
+      p_limite: 2,
+      p_ventana_minutos: 15,
+    })
+    const f3 = fila(tercera.data)
+    check(
+      'al pasarse del límite corta y dice cuánto esperar',
+      f3?.permitido === false && Number(f3?.espera_segundos) > 0,
+      `permitido=${f3?.permitido}, espera=${f3?.espera_segundos}s`
+    )
+
+    await admin.rpc('limpiar_intentos', { p_claves: clave })
+    const despues = await admin.rpc('registrar_intento', {
+      p_claves: clave,
+      p_limite: 2,
+      p_ventana_minutos: 15,
+    })
+    check('limpiar_intentos libera el contador', fila(despues.data)?.permitido === true)
+    await admin.rpc('limpiar_intentos', { p_claves: clave })
+
+    // Estos van ADENTRO del if a propósito: si la función no existe, "anon no
+    // puede llamarla" pasaría por el motivo equivocado y taparía el problema.
+    // Lo que importa acá es que exista Y que el público no la alcance: si
+    // pudiera, llenaría el contador de la IP del cliente y lo dejaría afuera
+    // de su propio panel.
+    const { error: errRpcAnon } = await anon.rpc('registrar_intento', {
+      p_claves: ['hack'],
+      p_limite: 1,
+      p_ventana_minutos: 15,
+    })
+    check('anon NO puede llamar a registrar_intento', !!errRpcAnon, errRpcAnon?.message ?? '¡pudo!')
+
+    const { error: errTablaAnon } = await anon.from('intentos').select('id').limit(1)
+    check('anon NO puede leer la tabla intentos', !!errTablaAnon, errTablaAnon?.message ?? '¡pudo!')
+
+    // La tabla NO puede tener datos personales: ni mails ni IPs en claro.
+    // Se guardan hasheados con HMAC (src/lib/rate-limit.ts) justamente para que
+    // `intentos` no sea una base de datos personales bajo la Ley 18.331.
+    // Este check mira las filas reales, no la teoría.
+    const { data: filas } = await admin.from('intentos').select('clave').limit(500)
+    const sospechosas = (filas ?? [])
+      .map((f) => f.clave)
+      .filter((c) => c.includes('@') || /\b\d{1,3}(\.\d{1,3}){3}\b/.test(c))
+    check(
+      'la tabla intentos NO guarda mails ni IPs en claro',
+      sospechosas.length === 0,
+      sospechosas.length > 0 ? `encontradas: ${sospechosas.slice(0, 3).join(', ')}` : `${filas?.length ?? 0} filas revisadas`
+    )
+  }
+}
+
 console.log(fallas === 0 ? '\nTodo verificado. El guardrail estructural está activo.' : `\n${fallas} CHECKS FALLARON — revisar antes de seguir.`)
 process.exit(fallas === 0 ? 0 : 1)

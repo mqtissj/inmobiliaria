@@ -57,7 +57,7 @@ export default async function PublicLayout({ children }: { children: React.React
                 hasta que confirme si sigue vigente — venía de su Instagram) */}
             <p className="mt-3 text-sm text-surface/70">
               En Tacuarembó desde 2021. Garantías de alquiler con MAPFRE, Porto Seguro, Sancor y
-              SURA — no trabajamos con depósito.
+              SURA, y también ANDA, Contaduría (CGN), garantía propietaria o depósito.
             </p>
           </div>
 
