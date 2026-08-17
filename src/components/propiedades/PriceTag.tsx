@@ -19,5 +19,7 @@ export function PriceTag({
   if (!precio) {
     return <p className={`${base} font-display italic text-ink-faint`}>Consultar precio</p>
   }
-  return <p className={`${base} font-display font-semibold tabular-nums text-pf-navy`}>{precio}</p>
+  // Azul PF y no marino: el precio es EL dato de cada tarjeta, y es donde la
+  // marca se ve en todo el listado (pedido del cliente del 17/8: más azul)
+  return <p className={`${base} font-display font-semibold tabular-nums text-pf-blue`}>{precio}</p>
 }

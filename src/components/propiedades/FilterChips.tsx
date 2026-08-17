@@ -7,42 +7,70 @@ import Link from 'next/link'
 
   Los chips se derivan de las propiedades cargadas, no de una lista inventada:
   si la inmobiliaria no tiene galpones, no hay chip "galpón"; si ninguna
-  propiedad tiene 3 dormitorios, no hay chip "3 dormitorios".
-  (El de dormitorios fue pedido del cliente el 15/8: con varias casas parecidas,
-  precisa que se puedan distinguir de un vistazo.)
+  propiedad acepta mascotas, no hay chip de mascotas. Por eso "Traspaso",
+  "Acepta mascotas" y "Para familia/pareja" (pedidos del cliente el 17/8)
+  aparecen solos cuando el panel carga propiedades con esos datos.
 */
+type Destino = {
+  operacion?: string
+  tipo?: string
+  dormitorios?: number
+  mascotas?: boolean
+  ideal?: string
+}
+
 export function FilterChips({
   operacionActiva,
   tipoActivo,
   tiposDisponibles,
   dormitoriosActivo,
   dormitoriosDisponibles,
+  hayTraspasos,
+  mascotasActivo,
+  hayMascotas,
+  idealActivo,
+  idealesDisponibles,
 }: {
   operacionActiva?: string
   tipoActivo?: string
   tiposDisponibles: string[]
   dormitoriosActivo?: number
   dormitoriosDisponibles: number[]
+  hayTraspasos: boolean
+  mascotasActivo: boolean
+  hayMascotas: boolean
+  idealActivo?: string
+  idealesDisponibles: string[]
 }) {
   // Cada chip declara el estado COMPLETO al que lleva; lo que no se pasa, se apaga.
-  const href = (destino: { operacion?: string; tipo?: string; dormitorios?: number }) => {
+  const href = (destino: Destino) => {
     const params = new URLSearchParams()
     if (destino.operacion) params.set('operacion', destino.operacion)
     if (destino.tipo) params.set('tipo', destino.tipo)
     if (destino.dormitorios) params.set('dormitorios', String(destino.dormitorios))
+    if (destino.mascotas) params.set('mascotas', 'si')
+    if (destino.ideal) params.set('ideal', destino.ideal)
     const qs = params.toString()
     return qs ? `/?${qs}` : '/'
   }
 
   // Estado actual, para que cada grupo de chips preserve los otros filtros
-  const actual = { operacion: operacionActiva, tipo: tipoActivo, dormitorios: dormitoriosActivo }
+  const actual: Destino = {
+    operacion: operacionActiva,
+    tipo: tipoActivo,
+    dormitorios: dormitoriosActivo,
+    mascotas: mascotasActivo,
+    ideal: idealActivo,
+  }
 
   const chip = (activo: boolean) =>
     `rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
       activo
-        ? 'bg-pf-navy text-surface'
+        ? 'bg-pf-blue text-surface'
         : 'border border-line bg-surface text-ink-soft hover:border-pf-blue hover:text-pf-blue'
     }`
+
+  const separador = <span className="mx-1 hidden h-5 w-px bg-line sm:block" aria-hidden="true" />
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -55,10 +83,15 @@ export function FilterChips({
       <Link href={href({ ...actual, operacion: 'alquiler' })} className={chip(operacionActiva === 'alquiler')}>
         Alquilar
       </Link>
+      {hayTraspasos && (
+        <Link href={href({ ...actual, operacion: 'traspaso' })} className={chip(operacionActiva === 'traspaso')}>
+          Traspaso
+        </Link>
+      )}
 
       {tiposDisponibles.length > 1 && (
         <>
-          <span className="mx-1 hidden h-5 w-px bg-line sm:block" aria-hidden="true" />
+          {separador}
           {tiposDisponibles.map((t) => (
             <Link
               key={t}
@@ -73,7 +106,7 @@ export function FilterChips({
 
       {dormitoriosDisponibles.length > 0 && (
         <>
-          <span className="mx-1 hidden h-5 w-px bg-line sm:block" aria-hidden="true" />
+          {separador}
           {dormitoriosDisponibles.map((d) => (
             <Link
               key={d}
@@ -83,6 +116,26 @@ export function FilterChips({
               {d} {d === 1 ? 'dormitorio' : 'dormitorios'}
             </Link>
           ))}
+        </>
+      )}
+
+      {(hayMascotas || idealesDisponibles.length > 0) && (
+        <>
+          {separador}
+          {idealesDisponibles.map((v) => (
+            <Link
+              key={v}
+              href={href({ ...actual, ideal: idealActivo === v ? undefined : v })}
+              className={chip(idealActivo === v)}
+            >
+              Para {v}
+            </Link>
+          ))}
+          {hayMascotas && (
+            <Link href={href({ ...actual, mascotas: !mascotasActivo })} className={chip(mascotasActivo)}>
+              Acepta mascotas
+            </Link>
+          )}
         </>
       )}
     </div>

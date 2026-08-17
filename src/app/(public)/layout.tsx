@@ -14,7 +14,8 @@ export default async function PublicLayout({ children }: { children: React.React
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-line-soft bg-surface/90 backdrop-blur">
+      {/* border-t-2 azul: filete de marca en el borde superior de toda la web (17/8) */}
+      <header className="sticky top-0 z-30 border-b border-t-2 border-line-soft border-t-pf-blue bg-surface/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
           <Link href="/" className="flex items-center gap-2.5">
             <BrandMark />
@@ -52,8 +53,11 @@ export default async function PublicLayout({ children }: { children: React.React
               <BrandMark className="h-8 w-8" />
               <span className="font-display font-semibold">{config.nombre}</span>
             </div>
+            {/* Lista de aseguradoras dictada por el cliente el 17/8 (SURA queda
+                hasta que confirme si sigue vigente — venía de su Instagram) */}
             <p className="mt-3 text-sm text-surface/70">
-              En Tacuarembó desde 2021. Corredores oficiales de SURA y PORTO.
+              En Tacuarembó desde 2021. Garantías de alquiler con MAPFRE, Porto Seguro, Sancor y
+              SURA — no trabajamos con depósito.
             </p>
           </div>
 

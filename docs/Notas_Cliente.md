@@ -27,3 +27,32 @@ Pide una sección de consultoría para que alguien pueda **ofrecer** (propietari
 ### Bloqueante activo
 
 Todavía no llegaron las respuestas del cuestionario de relevamiento. Sin eso, estos dos puntos quedan anotados pero no se puede avanzar con contenido real para F4/F5 — y de todas formas el roadmap todavía está en F1 (login del panel), bastante antes de llegar a la web pública.
+
+---
+
+## 2026-08-17
+
+**Origen:** mensaje del cliente (vía Matías). Cuatro pedidos, todos implementados ese día.
+
+### 1. "Necesito que el azul tenga más presencia" — HECHO
+
+Hero y cierre de la home en azul PF pleno, filete azul en el borde superior del sitio, precios del listado en azul, chips activos en azul (antes marino), bloque de citas de /contacto en azul.
+
+### 2. Filtros: venta / alquiler / traspaso, dormitorios, familia o pareja, mascotas — HECHO
+
+- Venta/alquiler y dormitorios ya existían.
+- **Traspaso** necesitó valor nuevo en el enum `operacion_t` y **familia/pareja** una columna nueva `ideal_para text[]` — SQL en `docs/sql/2026-08-17-traspaso-ideal-para.sql`.
+- **Mascotas** usa la columna `acepta_mascotas` que ya estaba.
+- Los chips se derivan de los datos: el de mascotas aparece recién cuando alguna propiedad cargada acepte mascotas (al 17/8, las tres de alquiler tienen "no"), y los de familia/pareja cuando se tilden en el panel.
+
+### 3. "No trabajan con depósito" + aseguradoras MAPFRE, Porto Seguro, Sancor — HECHO
+
+Textos de footer, metadata, /contacto y FAQ de garantías actualizados; opciones de garantía del panel también.
+
+**A confirmar con el cliente:** la web decía "corredores oficiales de SURA y PORTO" (sacado de su Instagram). El cliente nombró MAPFRE, Porto Seguro y Sancor — sin SURA. Decisión del 17/8: SURA queda en la lista hasta que el cliente confirme si sigue vigente. Si no sigue, sacarla de: footer, metadata de `app/layout.tsx`, intro de /contacto, FAQ de garantías (en la base) y `GARANTIAS` del panel.
+
+### 4. "Agregar consultoría de citas" — INTERPRETADO E IMPLEMENTADO, CONFIRMAR
+
+Se interpretó como **agendar citas**: bloque "Agendá una cita" en `/contacto#agendar` que arma un WhatsApp estructurado sin guardar datos (mismo patrón que el form de propietarios), con links desde el cierre de la home y desde cada ficha ("Agendar una visita", con el código precargado). La cita la confirma una persona respondiendo el WhatsApp — la web nunca confirma sola.
+
+**A confirmar con el cliente** que era esto — la "sección Consultoría" del 6/8 sigue sin definirse (posible scope creep, ver esa nota).

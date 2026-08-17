@@ -10,7 +10,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase-server'
-import { TIPOS_PROPIEDAD } from '@/lib/types'
+import { esAlquilerOTraspaso, IDEAL_PARA, OPERACIONES, TIPOS_PROPIEDAD } from '@/lib/types'
 
 export interface EstadoGuardar {
   error: string | null
@@ -39,7 +39,7 @@ function armarFila(formData: FormData): { error: string } | { fila: Record<strin
   if (!codigo || !titulo) return { error: 'El código y el título son obligatorios.' }
   if (!/^[A-Z0-9-]{2,20}$/.test(codigo))
     return { error: 'El código lleva solo letras, números y guiones (ej.: TB-005).' }
-  if (!['venta', 'alquiler'].includes(operacion)) return { error: 'Elegí la operación.' }
+  if (!(OPERACIONES as readonly string[]).includes(operacion)) return { error: 'Elegí la operación.' }
   if (!(TIPOS_PROPIEDAD as readonly string[]).includes(tipo)) return { error: 'Elegí el tipo de propiedad.' }
   if (!['disponible', 'reservada', 'vendida', 'alquilada'].includes(estado))
     return { error: 'El estado no es válido.' }
@@ -63,6 +63,14 @@ function armarFila(formData: FormData): { error: string } | { fila: Record<strin
     }
 
   const tiposGarantia = formData.getAll('tipos_garantia').map(String)
+  // Solo los valores del CHECK de la base; cualquier otro se descarta acá
+  // en vez de reventar como error de constraint incomprensible para el usuario
+  const idealPara = formData
+    .getAll('ideal_para')
+    .map(String)
+    .filter((v) => (IDEAL_PARA as readonly string[]).includes(v))
+  // Un traspaso ES un alquiler en curso: hereda garantía y mascotas
+  const conCondicionesDeAlquiler = esAlquilerOTraspaso(operacion)
 
   return {
     codigo,
@@ -86,9 +94,10 @@ function armarFila(formData: FormData): { error: string } | { fila: Record<strin
       tiene_luz: formData.get('tiene_luz') === 'on' ? true : null,
       alambrado: formData.get('alambrado') === 'on' ? true : null,
       padron: String(formData.get('padron') ?? '').trim() || null,
-      requiere_garantia: operacion === 'alquiler' ? formData.get('requiere_garantia') === 'on' : null,
-      tipos_garantia: operacion === 'alquiler' && tiposGarantia.length > 0 ? tiposGarantia : null,
-      acepta_mascotas: operacion === 'alquiler' ? formData.get('acepta_mascotas') === 'on' : null,
+      requiere_garantia: conCondicionesDeAlquiler ? formData.get('requiere_garantia') === 'on' : null,
+      tipos_garantia: conCondicionesDeAlquiler && tiposGarantia.length > 0 ? tiposGarantia : null,
+      acepta_mascotas: conCondicionesDeAlquiler ? formData.get('acepta_mascotas') === 'on' : null,
+      ideal_para: idealPara.length > 0 ? idealPara : null,
       destacada: formData.get('destacada') === 'on',
     },
   }

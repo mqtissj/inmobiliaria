@@ -1,4 +1,4 @@
-import { esRural } from '@/lib/types'
+import { esAlquilerOTraspaso, esRural } from '@/lib/types'
 import type { Propiedad } from '@/lib/types'
 
 /*
@@ -33,7 +33,8 @@ function filas(p: Propiedad): { etiqueta: string; valor: string }[] {
       etiqueta: 'Gastos comunes',
       valor: `$U ${Number(p.gastos_comunes).toLocaleString('es-UY')}`,
     })
-  if (p.operacion === 'alquiler' && p.requiere_garantia != null) {
+  // Traspaso incluido: quien toma un alquiler en curso hereda estas condiciones
+  if (esAlquilerOTraspaso(p.operacion) && p.requiere_garantia != null) {
     out.push({
       etiqueta: 'Garantía',
       valor: p.requiere_garantia
@@ -43,8 +44,13 @@ function filas(p: Propiedad): { etiqueta: string; valor: string }[] {
         : 'No requiere',
     })
   }
-  if (p.operacion === 'alquiler' && p.acepta_mascotas != null)
+  if (esAlquilerOTraspaso(p.operacion) && p.acepta_mascotas != null)
     out.push({ etiqueta: 'Mascotas', valor: si(p.acepta_mascotas) })
+  if (p.ideal_para && p.ideal_para.length > 0)
+    out.push({
+      etiqueta: 'Ideal para',
+      valor: p.ideal_para.map((v) => v.charAt(0).toUpperCase() + v.slice(1)).join(' / '),
+    })
 
   return out
 }

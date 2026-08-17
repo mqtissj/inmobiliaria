@@ -4,7 +4,14 @@ import { useActionState, useEffect, useRef, useState, useTransition } from 'reac
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase-browser'
-import { esRural, TIPOS_PROPIEDAD, type Propiedad, type PropiedadFoto } from '@/lib/types'
+import {
+  esAlquilerOTraspaso,
+  esRural,
+  IDEAL_PARA,
+  TIPOS_PROPIEDAD,
+  type Propiedad,
+  type PropiedadFoto,
+} from '@/lib/types'
 import { PhotoDropzone, type FotoElegida } from '@/components/admin/PhotoDropzone'
 import {
   actualizarPropiedad,
@@ -28,9 +35,11 @@ import {
 */
 const estadoInicial: EstadoGuardar = { error: null }
 
-// Garantías que se manejan en Uruguay + las aseguradoras de las que PF es
-// corredor oficial (SURA y Porto, según su propio Instagram).
-const GARANTIAS = ['ANDA', 'Contaduría (CGN)', 'Garantía propietaria', 'SURA', 'Porto']
+// Garantías que se manejan en Uruguay + las aseguradoras con las que trabaja
+// PF (MAPFRE, Porto Seguro y Sancor dictadas por el cliente el 17/8; SURA
+// queda de su Instagram hasta que confirme si sigue). PF NO trabaja con
+// depósito — por eso no es opción acá.
+const GARANTIAS = ['ANDA', 'Contaduría (CGN)', 'Garantía propietaria', 'MAPFRE', 'Porto Seguro', 'Sancor', 'SURA']
 
 const claseInput =
   'mt-1 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-pf-blue'
@@ -201,6 +210,7 @@ export function PropertyForm({
             >
               <option value="venta">Venta</option>
               <option value="alquiler">Alquiler</option>
+              <option value="traspaso">Traspaso (de alquiler)</option>
             </select>
           </div>
           <div>
@@ -435,10 +445,26 @@ export function PropertyForm({
               Garaje
             </label>
           </div>
+          {/* Alimenta el filtro "Para familia / Para pareja" de la web (pedido
+              del cliente, 17/8). Pueden ir las dos: no son excluyentes. */}
+          <div className="mt-3 flex flex-wrap gap-5">
+            {IDEAL_PARA.map((v) => (
+              <label key={v} className={claseCheck}>
+                <input
+                  type="checkbox"
+                  name="ideal_para"
+                  value={v}
+                  defaultChecked={propiedad?.ideal_para?.includes(v)}
+                  className="h-4 w-4 accent-pf-blue"
+                />
+                Ideal para {v}
+              </label>
+            ))}
+          </div>
         </Seccion>
       )}
 
-      {operacion === 'alquiler' && (
+      {esAlquilerOTraspaso(operacion) && (
         <Seccion titulo="Condiciones del alquiler">
           <label className={claseCheck}>
             <input

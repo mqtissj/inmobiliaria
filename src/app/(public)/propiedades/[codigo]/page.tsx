@@ -33,7 +33,7 @@ export async function generateMetadata(
     title: `${p.titulo} · ${p.codigo}`,
     description: descripcion,
     openGraph: {
-      title: `${p.titulo} · ${p.operacion === 'venta' ? 'Venta' : 'Alquiler'}`,
+      title: `${p.titulo} · ${p.operacion.charAt(0).toUpperCase() + p.operacion.slice(1)}`,
       description: descripcion,
       // Con foto real se usa la portada; sin fotos queda la imagen OG general del sitio
       ...(fotos.length > 0 && { images: [{ url: fotos[0].url }] }),
@@ -131,6 +131,14 @@ export default async function FichaPropiedad(props: PageProps<'/propiedades/[cod
           <div className="mt-4">
             <WhatsAppLink href={waHref}>Consultar por WhatsApp</WhatsAppLink>
           </div>
+          {/* El form de cita llega con el código ya puesto; la fecha la
+              confirma una persona del equipo, nunca la web sola */}
+          <Link
+            href={`/contacto?prop=${p.codigo}#agendar`}
+            className="mt-3 inline-block text-sm font-semibold text-pf-blue hover:underline"
+          >
+            Agendar una visita
+          </Link>
           <p className="mt-4 border-t border-line-soft pt-3 text-xs leading-relaxed text-ink-faint">
             {config.nombre} · {config.direccion}
             <br />

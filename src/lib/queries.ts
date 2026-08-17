@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { supabase } from './supabase'
+import { IDEAL_PARA, OPERACIONES } from './types'
 import type { ConfigNegocio, Faq, Propiedad, PropiedadFoto } from './types'
 
 /*
@@ -28,6 +29,8 @@ export interface FiltrosListado {
   operacion?: string
   tipo?: string
   dormitorios?: number
+  mascotas?: boolean
+  idealPara?: string
 }
 
 export const getPropiedadesPublicas = cache(async (filtros: FiltrosListado = {}): Promise<Propiedad[]> => {
@@ -37,7 +40,9 @@ export const getPropiedadesPublicas = cache(async (filtros: FiltrosListado = {})
     .order('destacada', { ascending: false })
     .order('creado_en', { ascending: false })
 
-  if (filtros.operacion === 'venta' || filtros.operacion === 'alquiler') {
+  // Los valores se validan contra las listas de types.ts antes de ir al query:
+  // un valor inventado en la URL simplemente no filtra (no rompe ni filtra mal).
+  if (filtros.operacion && (OPERACIONES as readonly string[]).includes(filtros.operacion)) {
     query = query.eq('operacion', filtros.operacion)
   }
   if (filtros.tipo) {
@@ -48,6 +53,15 @@ export const getPropiedadesPublicas = cache(async (filtros: FiltrosListado = {})
   // que nunca se ofrece un número sin resultados.
   if (filtros.dormitorios) {
     query = query.eq('dormitorios', filtros.dormitorios)
+  }
+  // Pedidos del cliente (17/8): mascotas y público ideal.
+  if (filtros.mascotas) {
+    query = query.eq('acepta_mascotas', true)
+  }
+  // contains porque ideal_para es un array: una casa puede servir para
+  // familia Y pareja, y tiene que aparecer en los dos filtros.
+  if (filtros.idealPara && (IDEAL_PARA as readonly string[]).includes(filtros.idealPara)) {
+    query = query.contains('ideal_para', [filtros.idealPara])
   }
 
   const { data, error } = await query

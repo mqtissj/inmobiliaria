@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s · PF Negocios Inmobiliarios",
   },
   description:
-    "Casas, apartamentos, campos y chacras en venta y alquiler en Tacuarembó. Corredores oficiales de SURA y PORTO, desde 2021.",
+    "Casas, apartamentos, campos y chacras en venta, alquiler y traspaso en Tacuarembó. Garantías con MAPFRE, Porto Seguro, Sancor y SURA — sin depósito. Desde 2021.",
   openGraph: {
     type: "website",
     locale: "es_UY",

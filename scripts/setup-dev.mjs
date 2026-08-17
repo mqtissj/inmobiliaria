@@ -106,7 +106,7 @@ const base = {
 
 console.log('\nConstraints reales (probado contra la base):')
 await probar('tipo', ['casa', 'apartamento', 'campo', 'chacra', 'terreno', 'local', 'galpon'], base)
-await probar('operacion', ['venta', 'alquiler', 'alquiler_temporal'], base)
+await probar('operacion', ['venta', 'alquiler', 'traspaso', 'alquiler_temporal'], base)
 await probar('estado', ['disponible', 'reservada', 'vendida', 'alquilada', 'retirada', 'oculta'], base)
 await probar('moneda', ['USD', 'UYU', 'UI'], base)
 

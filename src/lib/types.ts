@@ -3,9 +3,22 @@
 // (script scripts/setup-dev.mjs descubre los enums probando contra la base).
 
 // Enums reales de Postgres (operacion_t y estado_t) — verificados por inserción de prueba
-export type Operacion = 'venta' | 'alquiler'
+// 'traspaso' se agregó el 17/8/2026 a pedido del cliente (docs/sql/2026-08-17)
+export const OPERACIONES = ['venta', 'alquiler', 'traspaso'] as const
+export type Operacion = (typeof OPERACIONES)[number]
 export type EstadoPropiedad = 'disponible' | 'reservada' | 'vendida' | 'alquilada'
 export type Moneda = 'USD' | 'UYU'
+
+// Un traspaso es tomar un alquiler ya en curso: se paga mensual y se heredan
+// las condiciones del contrato — por eso comparte los campos de alquiler
+// (garantía, mascotas) en el formulario, la ficha y las validaciones.
+export function esAlquilerOTraspaso(operacion: string): boolean {
+  return operacion === 'alquiler' || operacion === 'traspaso'
+}
+
+// Público sugerido de una propiedad. La base tiene un CHECK con estos mismos
+// dos valores (guardrail estructural) — si se agrega uno acá, va también en SQL.
+export const IDEAL_PARA = ['familia', 'pareja'] as const
 
 // `tipo` es texto libre en la base; este es el vocabulario que usa el formulario del panel
 export const TIPOS_PROPIEDAD = ['casa', 'apartamento', 'campo', 'chacra', 'terreno', 'local', 'galpón'] as const
@@ -52,10 +65,12 @@ export interface Propiedad {
   tiene_luz: boolean | null
   alambrado: boolean | null
   padron: string | null
-  // alquiler
+  // alquiler (y traspaso)
   requiere_garantia: boolean | null
   tipos_garantia: string[] | null
   acepta_mascotas: boolean | null
+  // en la view pública puede no venir hasta correr docs/sql/2026-08-17
+  ideal_para: string[] | null
   destacada: boolean
   creado_en: string
   actualizado_en: string

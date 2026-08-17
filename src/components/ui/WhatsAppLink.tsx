@@ -9,12 +9,17 @@ export function WhatsAppLink({
 }: {
   href: string
   children: React.ReactNode
-  variante?: 'primario' | 'compacto'
+  // 'invertido' es para fondos azul pleno (hero, cierre): botón blanco con texto azul
+  variante?: 'primario' | 'compacto' | 'invertido'
 }) {
-  const estilos =
-    variante === 'primario'
-      ? 'inline-flex items-center gap-2 rounded-md bg-pf-blue px-5 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-pf-navy'
-      : 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-pf-blue transition-colors hover:border-pf-blue'
+  const estilos = {
+    primario:
+      'inline-flex items-center gap-2 rounded-md bg-pf-blue px-5 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-pf-navy',
+    compacto:
+      'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-pf-blue transition-colors hover:border-pf-blue',
+    invertido:
+      'inline-flex items-center gap-2 rounded-md bg-surface px-5 py-2.5 text-sm font-semibold text-pf-blue transition-colors hover:bg-pf-blue-soft',
+  }[variante]
 
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" className={estilos}>

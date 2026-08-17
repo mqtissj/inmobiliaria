@@ -57,6 +57,15 @@ await admin.from('propiedades').update({ precio: 350000 }).eq('codigo', 'TB-004'
   const { data } = await anon.from('config_negocio').select('clave')
   check('la web lee config_negocio (header/footer)', (data?.length ?? 0) >= 6)
 }
+// Del 17/8 (docs/sql/2026-08-17): si esto falla, falta correr ese SQL.
+{
+  const { error } = await anon.from('propiedades_publicas').select('codigo').eq('operacion', 'traspaso').limit(1)
+  check("el enum acepta 'traspaso' (filtro de la web)", !error, error?.message)
+}
+{
+  const { error } = await anon.from('propiedades_publicas').select('ideal_para').limit(1)
+  check('la view expone ideal_para (filtro familia/pareja)', !error, error?.message)
+}
 
 // ---------- 3. Usuario del panel (authenticated) ----------
 {

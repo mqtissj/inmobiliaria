@@ -2,15 +2,20 @@ import type { Metadata } from 'next'
 import { linkInstagram, linkWhatsApp } from '@/lib/format'
 import { getConfig } from '@/lib/queries'
 import { WhatsAppLink } from '@/components/ui/WhatsAppLink'
+import { CitaForm } from './CitaForm'
 import { PropietarioForm } from './PropietarioForm'
 
 export const metadata: Metadata = {
   title: 'Contacto',
   description:
-    'Escribile a PF Negocios Inmobiliarios por WhatsApp, visitá el local en 25 de Mayo 329, Tacuarembó, o contanos qué propiedad querés vender o alquilar.',
+    'Escribile a PF Negocios Inmobiliarios por WhatsApp, agendá una cita, visitá el local en 25 de Mayo 329, Tacuarembó, o contanos qué propiedad querés vender o alquilar.',
 }
 
-export default async function Contacto() {
+export default async function Contacto(props: PageProps<'/contacto'>) {
+  const sp = await props.searchParams
+  // Viniendo de una ficha ("Agendar una visita"), el código llega en la URL
+  // y el form de cita arranca con la propiedad puesta
+  const propInicial = typeof sp.prop === 'string' ? sp.prop : ''
   const config = await getConfig()
   const mapaHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${config.direccion}, Uruguay`
@@ -20,8 +25,9 @@ export default async function Contacto() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <h1 className="font-display text-3xl font-semibold text-pf-navy">Contacto</h1>
       <p className="mt-2 max-w-lg text-ink-soft">
-        Somos {config.nombre}: trabajamos propiedades urbanas y rurales de Tacuarembó desde 2021,
-        y somos corredores oficiales de SURA y Porto para garantías de alquiler.
+        Somos {config.nombre}: trabajamos propiedades urbanas y rurales de Tacuarembó desde 2021.
+        Para alquilar aceptamos garantías de MAPFRE, Porto Seguro, Sancor y SURA — no trabajamos
+        con depósito.
       </p>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_1fr]">
@@ -77,6 +83,20 @@ export default async function Contacto() {
           </div>
         </div>
       </div>
+
+      {/* Agendar una cita (pedido del cliente, 17/8) — bloque azul pleno,
+          distinto a las tarjetas de arriba a propósito: es el remate de la
+          página, no una tarjeta más */}
+      <section id="agendar" className="mt-10 scroll-mt-20 rounded-lg bg-pf-blue px-6 py-8">
+        <h2 className="font-display text-xl font-semibold text-surface">Agendá una cita</h2>
+        <p className="mt-1 max-w-xl text-sm text-surface/85">
+          Contanos para qué y cuándo te queda bien. Atendemos {config.horario.toLowerCase()} en{' '}
+          {config.direccion.split(',')[0]}.
+        </p>
+        <div className="mt-5">
+          <CitaForm whatsapp={config.whatsapp} propInicial={propInicial} />
+        </div>
+      </section>
     </div>
   )
 }
