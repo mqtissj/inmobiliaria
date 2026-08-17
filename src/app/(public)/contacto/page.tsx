@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { linkInstagram, linkWhatsApp } from '@/lib/format'
+import { linkFacebook, linkInstagram, linkWhatsApp } from '@/lib/format'
 import { getConfig } from '@/lib/queries'
 import { WhatsAppLink } from '@/components/ui/WhatsAppLink'
 import { CitaForm } from './CitaForm'
@@ -26,8 +26,9 @@ export default async function Contacto(props: PageProps<'/contacto'>) {
       <h1 className="font-display text-3xl font-semibold text-pf-navy">Contacto</h1>
       <p className="mt-2 max-w-lg text-ink-soft">
         Somos {config.nombre}: trabajamos propiedades urbanas y rurales de Tacuarembó desde 2021.
-        Para alquilar aceptamos garantías de MAPFRE, Porto Seguro, Sancor y SURA, y según el
-        propietario también ANDA, Contaduría (CGN), garantía propietaria o depósito.
+        Para alquilar, somos corredores de garantías de MAPFRE y SURA — también trabajamos con
+        Porto Seguro y Sancor. Y si comprás, como agentes MiCasa de Banco Santander te podemos
+        gestionar el financiamiento con el banco.
       </p>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_1fr]">
@@ -65,6 +66,14 @@ export default async function Contacto(props: PageProps<'/contacto'>) {
               >
                 Instagram @{config.instagram} ↗
               </a>
+              <a
+                href={linkFacebook(config.facebook)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-semibold text-pf-blue hover:underline"
+              >
+                Facebook ↗
+              </a>
             </div>
           </div>
         </div>
@@ -76,8 +85,15 @@ export default async function Contacto(props: PageProps<'/contacto'>) {
             ¿Tenés una propiedad para vender o alquilar?
           </h2>
           <p className="mt-1 text-sm text-ink-soft">
-            Contanos qué tenés y un asesor te responde. La tasación la hace una persona visitando
-            la propiedad — no un formulario.
+            Contanos qué tenés y un asesor te responde. Hacemos tasaciones de cualquier tipo — y
+            la tasación la hace una persona visitando la propiedad, no un formulario.
+          </p>
+          {/* Requisitos dictados por el cliente el 17/8 (PREGUNTAS.txt): que el
+              propietario sepa de antemano qué le vamos a pedir */}
+          <p className="mt-3 text-sm text-ink-soft">
+            Para publicarla vamos a pedirte: <span className="font-semibold text-ink">número de
+            padrón</span>, datos del propietario, dirección y ubicación, y estado general
+            (remodelaciones, nueva, a estrenar).
           </p>
           <div className="mt-5">
             <PropietarioForm whatsapp={config.whatsapp} />

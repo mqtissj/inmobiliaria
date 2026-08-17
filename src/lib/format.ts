@@ -43,3 +43,7 @@ export function linkWhatsApp(numero: string, opts?: { codigo?: string; titulo?: 
 export function linkInstagram(usuario: string): string {
   return `https://www.instagram.com/${usuario}/`
 }
+
+export function linkFacebook(usuario: string): string {
+  return `https://www.facebook.com/${usuario}`
+}

@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     template: "%s · PF Negocios Inmobiliarios",
   },
   description:
-    "Casas, apartamentos, campos y chacras en venta, alquiler y traspaso en Tacuarembó. Garantías con MAPFRE, Porto Seguro, Sancor y SURA, ANDA, CGN o depósito. Desde 2021.",
+    "Casas, apartamentos, campos y chacras en venta, alquiler y traspaso en Tacuarembó. Corredores de garantías MAPFRE y SURA, agentes MiCasa de Banco Santander. Desde 2021.",
   openGraph: {
     type: "website",
     locale: "es_UY",

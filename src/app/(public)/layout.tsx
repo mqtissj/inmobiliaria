@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { linkInstagram, linkWhatsApp } from '@/lib/format'
+import { linkFacebook, linkInstagram, linkWhatsApp } from '@/lib/format'
 import { getConfig } from '@/lib/queries'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { WhatsAppLink } from '@/components/ui/WhatsAppLink'
@@ -24,7 +24,7 @@ export default async function PublicLayout({ children }: { children: React.React
             </span>
           </Link>
 
-          <nav className="flex items-center gap-4 sm:gap-5">
+          <nav className="flex items-center gap-3 sm:gap-5">
             <Link
               href="/#faqs"
               className="hidden text-sm font-semibold text-ink-soft transition-colors hover:text-pf-blue md:block"
@@ -37,8 +37,11 @@ export default async function PublicLayout({ children }: { children: React.React
             >
               Contacto
             </Link>
+            {/* En celular la marca + Contacto + el número no entran (390px) y el
+                chip desbordaba la página 7px — el fix responsive del 17/8.
+                sr-only y no hidden: el link conserva su nombre accesible. */}
             <WhatsAppLink href={linkWhatsApp(config.whatsapp)} variante="compacto">
-              {config.telefono}
+              <span className="sr-only sm:not-sr-only">{config.telefono}</span>
             </WhatsAppLink>
           </nav>
         </div>
@@ -53,11 +56,12 @@ export default async function PublicLayout({ children }: { children: React.React
               <BrandMark className="h-8 w-8" />
               <span className="font-display font-semibold">{config.nombre}</span>
             </div>
-            {/* Lista de aseguradoras dictada por el cliente el 17/8 (SURA queda
-                hasta que confirme si sigue vigente — venía de su Instagram) */}
+            {/* Texto dictado por el cliente el 17/8 (PREGUNTAS.txt): MAPFRE y
+                SURA son las principales; ANDA y Contaduría (CGN) NO se trabajan
+                y el depósito salió de los textos públicos. */}
             <p className="mt-3 text-sm text-surface/70">
-              En Tacuarembó desde 2021. Garantías de alquiler con MAPFRE, Porto Seguro, Sancor y
-              SURA, y también ANDA, Contaduría (CGN), garantía propietaria o depósito.
+              En Tacuarembó desde 2021. Corredores de garantías de alquiler de MAPFRE y SURA —
+              también trabajamos con Porto Seguro y Sancor — y agentes MiCasa de Banco Santander.
             </p>
           </div>
 
@@ -87,6 +91,17 @@ export default async function PublicLayout({ children }: { children: React.React
                 className="text-surface/80 underline-offset-2 transition-colors hover:text-surface hover:underline"
               >
                 Instagram @{config.instagram}
+              </a>
+            </p>
+            {/* Facebook agregado el 17/8 a pedido del cliente (PREGUNTAS.txt) */}
+            <p className="mt-1">
+              <a
+                href={linkFacebook(config.facebook)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-surface/80 underline-offset-2 transition-colors hover:text-surface hover:underline"
+              >
+                Facebook /{config.facebook}
               </a>
             </p>
           </div>

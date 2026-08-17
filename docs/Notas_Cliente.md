@@ -56,3 +56,50 @@ Textos de footer, metadata, /contacto y FAQ de garantías actualizados; opciones
 Se interpretó como **agendar citas**: bloque "Agendá una cita" en `/contacto#agendar` que arma un WhatsApp estructurado sin guardar datos (mismo patrón que el form de propietarios), con links desde el cierre de la home y desde cada ficha ("Agendar una visita", con el código precargado). La cita la confirma una persona respondiendo el WhatsApp — la web nunca confirma sola.
 
 **A confirmar con el cliente** que era esto — la "sección Consultoría" del 6/8 sigue sin definirse (posible scope creep, ver esa nota).
+
+---
+
+## 2026-08-17 (segunda tanda — PREGUNTAS.txt)
+
+**Origen:** respuestas del cliente al cuestionario, en `PREGUNTAS.txt` (raíz de la carpeta). Todo implementado ese mismo día.
+
+### 1. Garantías: MAPFRE y SURA son LAS principales; ANDA y CGN no se trabajan — HECHO
+
+- **SURA queda confirmada** (cerró el pendiente del 17/8 a la mañana): PF es **corredor de garantías de alquiler de MAPFRE y SURA**; Porto Seguro y Sancor acompañan.
+- **ANDA y Contaduría (CGN) NO se trabajan**: fuera de textos públicos, FAQ y opciones del panel.
+- **"Sacar lo del depósito"**: el depósito salió de los textos públicos (footer, metadata, /contacto, FAQ). En el panel quedó como opción por propiedad — la corrección de la tarde del 17/8 decía que sí lo aceptan. **Confirmar si también hay que sacarlo del panel.**
+- Logos de MAPFRE y SURA (los bajó el cliente/Matías) en el hero de la home, en `public/logos/` — se limpiaron los fondos sucios de descarga (damero pintado en el de SURA). Más tarde ese día llegaron también los de **Porto Seguro y Sancor** (misma limpieza): los cuatro van con logo, en dos niveles — MAPFRE y SURA en chips grandes (las principales), Porto Seguro y Sancor más chicos.
+
+### 2. Descripción del inicio "más hablada" — HECHO
+
+"Somos una agencia inmobiliaria de Tacuarembó y desde 2021 trabajamos con casas, apartamentos, campos y chacras…" en el hero, /contacto y metadata.
+
+### 3. Agentes MiCasa de Banco Santander — HECHO
+
+Gestionan financiamiento con Santander. Mencionado en hero, footer, /contacto y FAQ nueva.
+
+### 4. Comisión, seña, mes adelantado, Clearing — HECHO (FAQ)
+
+FAQ "¿Cobran comisión?" actualizada con las palabras del cliente: por única vez, 60% en base al precio del contrato, mes adelantado, se puede señar, sujeto a Clearing. **Confirmar la redacción exacta del 60% con el cliente** (¿60% de un mes de alquiler?) — el txt decía "60% por única vez en base al precio del contacto [sic]".
+
+### 5. Tasaciones de cualquier tipo — HECHO (FAQ + /contacto)
+
+### 6. Requisitos para publicar una propiedad — HECHO
+
+Padrón, propietario, dirección y ubicación, estado general (remodelaciones, nueva, a estrenar). En /contacto sobre el form de propietarios + FAQ nueva.
+
+### 7. Facebook — HECHO
+
+facebook.com/inmb.catalina como clave `facebook` en `config_negocio`; link en footer y /contacto.
+
+### 8. Horario nuevo — HECHO
+
+Lunes a viernes de 9 a 12 y de 15:30 a 18. **Sábados NO** (antes decía sábados de 9 a 12). Actualizado en `config_negocio` y en el seed de `setup-dev.mjs`.
+
+### 9. "Fix responsive para que ande efectivo en cel" — HECHO
+
+Encontrado y corregido: el chip de WhatsApp del header (número entero + `whitespace-nowrap`) desbordaba 7px el viewport en 390px **en todas las páginas**. Ahora en celular el chip muestra solo el ícono (número en `sr-only`) y los gaps del nav se achican. Verificado sin desborde en /, /contacto, ficha y legales.
+
+### ⚠️ Hallazgo del mismo día: TB-004 no existe más
+
+Al correr `scripts/verify-setup.mjs` fallan los 3 checks del precio oculto: **TB-004 fue borrada de la base** (las propiedades actuales son TB-005–TB-008, datos reales del cliente). CLAUDE.md §4.2 la define como caso de prueba permanente. Hoy ninguna propiedad tiene `precio_publico=false`, así que el guardrail del precio oculto quedó sin caso vivo. **Decidir con Matías:** recrearla (aparecería en la web pública entre propiedades reales) o esperar a que el cliente cargue un campo real con precio reservado.

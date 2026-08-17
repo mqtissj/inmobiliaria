@@ -41,13 +41,16 @@ const BUCKET = 'fotos-propiedades'
 
 // ---------- 2. Config del negocio con datos reales ----------
 // Datos confirmados por Matías el 12/8/2026 (WhatsApp del linktree de IG de PF).
+// Horario y Facebook actualizados el 17/8 con PREGUNTAS.txt del cliente
+// (sábados NO se atiende — por eso el horario ya no los nombra).
 const config = [
   { clave: 'nombre', valor: 'PF Negocios Inmobiliarios' },
   { clave: 'direccion', valor: '25 de Mayo 329, Tacuarembó' },
   { clave: 'telefono', valor: '098 756 490' },
-  { clave: 'horario', valor: 'Lunes a viernes de 9 a 18, sábados de 9 a 12' },
+  { clave: 'horario', valor: 'Lunes a viernes de 9 a 12 y de 15:30 a 18' },
   { clave: 'whatsapp', valor: '59898756490' }, // formato wa.me, sin + ni espacios
   { clave: 'instagram', valor: 'pf_negocios_inmobiliarios' },
+  { clave: 'facebook', valor: 'inmb.catalina' }, // facebook.com/inmb.catalina
 ]
 {
   const { error } = await admin.from('config_negocio').upsert(config, { onConflict: 'clave' })

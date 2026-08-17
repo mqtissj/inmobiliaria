@@ -1,5 +1,11 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { linkWhatsApp } from '@/lib/format'
+// Import estático: Next conoce las dimensiones en build y no hay layout shift
+import logoMapfre from '../../../public/logos/mapfre.png'
+import logoSura from '../../../public/logos/sura.png'
+import logoPorto from '../../../public/logos/porto-seguro.png'
+import logoSancor from '../../../public/logos/sancor.png'
 import { getConfig, getFaqs, getPortadas, getPropiedadesPublicas } from '@/lib/queries'
 import { CARACTERISTICAS_VALIDAS, IDEAL_PARA, TIPOS_PATIO } from '@/lib/types'
 import { ErrorBox } from '@/components/ui/ErrorBox'
@@ -119,10 +125,46 @@ export default async function Home(props: PageProps<'/'>) {
             <h1 className="max-w-xl text-balance font-display text-3xl font-semibold text-surface sm:text-4xl">
               Casas, apartamentos y campos en Tacuarembó
             </h1>
-            <p className="mt-3 max-w-lg text-surface/85">
-              Propiedades en venta, alquiler y traspaso. Atendemos en{' '}
-              {config.direccion.split(',')[0]} y por WhatsApp — desde 2021.
+            {/* Descripción "más hablada" — pedido del cliente (17/8, PREGUNTAS.txt) */}
+            <p className="mt-3 max-w-xl text-surface/85">
+              Somos una agencia inmobiliaria de Tacuarembó y desde 2021 trabajamos con casas,
+              apartamentos, campos y chacras — en venta, alquiler y traspaso. Atendemos en{' '}
+              {config.direccion.split(',')[0]} y por WhatsApp.
             </p>
+
+            {/* Corredores de garantías de alquiler (17/8): los cuatro con logo,
+                pero en dos niveles — MAPFRE y SURA son las principales (chips
+                más grandes), Porto Seguro y Sancor acompañan más chicos.
+                Santander MiCasa cierra la tira: financiamiento bancario, la
+                otra pata del negocio. */}
+            <div className="mt-7">
+              {/* El cliente pidió que esto se diga explícito, no como etiqueta (17/8) */}
+              <p className="max-w-xl text-sm font-semibold text-surface">
+                Somos corredores de garantías de alquiler de MAPFRE y SURA
+                <span className="font-normal text-surface/80">
+                  {' '}
+                  — y también trabajamos con Porto Seguro y Sancor.
+                </span>
+              </p>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+                <span className="flex h-12 items-center rounded-md bg-surface px-4">
+                  <Image src={logoMapfre} alt="MAPFRE" className="h-6 w-auto" />
+                </span>
+                <span className="flex h-12 items-center rounded-md bg-surface px-4">
+                  <Image src={logoSura} alt="SURA" className="h-8 w-auto" />
+                </span>
+                <span className="flex h-9 items-center rounded-md bg-surface px-3">
+                  <Image src={logoPorto} alt="Porto Seguro" className="h-7 w-auto" />
+                </span>
+                <span className="flex h-9 items-center rounded-md bg-surface px-3">
+                  <Image src={logoSancor} alt="Sancor Seguros" className="h-4 w-auto" />
+                </span>
+              </div>
+              <p className="mt-3 max-w-xl text-sm text-surface/85">
+                Además somos agentes MiCasa de Banco Santander: te gestionamos el financiamiento
+                de tu casa con el banco.
+              </p>
+            </div>
           </div>
         </section>
         <section className="border-b border-line-soft bg-surface">

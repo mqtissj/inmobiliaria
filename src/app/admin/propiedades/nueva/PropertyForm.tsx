@@ -37,20 +37,18 @@ import {
 */
 const estadoInicial: EstadoGuardar = { error: null }
 
-// Garantías que se manejan en Uruguay + las aseguradoras con las que trabaja
-// PF (MAPFRE, Porto Seguro y Sancor dictadas por el cliente el 17/8; SURA
-// queda de su Instagram hasta que confirme si sigue).
-// El DEPÓSITO se agregó el 17/8 a la tarde: el cliente corrigió que sí trabajan
-// con depósito, al revés de lo que se había dicho a la mañana.
+// Garantías con las que PF trabaja de verdad (PREGUNTAS.txt del 17/8 a la
+// noche): corredores de MAPFRE y SURA —las principales—, también Porto Seguro
+// y Sancor. ANDA y Contaduría (CGN) NO se trabajan: fuera de las opciones.
+// El Depósito queda como opción por propiedad (la corrección de la tarde dijo
+// que sí lo aceptan) aunque salió de los textos públicos de la web.
 const GARANTIAS = [
-  'ANDA',
-  'Contaduría (CGN)',
-  'Garantía propietaria',
-  'Depósito',
   'MAPFRE',
+  'SURA',
   'Porto Seguro',
   'Sancor',
-  'SURA',
+  'Garantía propietaria',
+  'Depósito',
 ]
 
 const claseInput =

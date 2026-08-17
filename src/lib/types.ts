@@ -145,6 +145,6 @@ export interface Faq {
 
 // config_negocio es clave/valor; estas son las claves que la web usa
 export type ConfigNegocio = Record<
-  'nombre' | 'direccion' | 'telefono' | 'horario' | 'whatsapp' | 'instagram',
+  'nombre' | 'direccion' | 'telefono' | 'horario' | 'whatsapp' | 'instagram' | 'facebook',
   string
 >
