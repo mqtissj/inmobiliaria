@@ -103,9 +103,15 @@ if (errSemilla) {
 
 // ---------- 3. Usuario del panel (authenticated) ----------
 {
+  // Credenciales desde .env.local, nunca escritas en el codigo: este repo es
+  // publico (ver la nota de setup-dev.mjs).
+  if (!env.PANEL_TEST_EMAIL || !env.PANEL_TEST_PASSWORD) {
+    console.log('FALLA  faltan PANEL_TEST_EMAIL / PANEL_TEST_PASSWORD en .env.local')
+    process.exit(1)
+  }
   const { data: sesion, error: errLogin } = await anon.auth.signInWithPassword({
-    email: 'pf-inmobiliaria@tbo.uy', // cambiado el 15/8/2026 (mismo usuario que setup-dev.mjs)
-    password: 'pf-inmobiliaria-panel',
+    email: env.PANEL_TEST_EMAIL,
+    password: env.PANEL_TEST_PASSWORD,
   })
   check('login con contraseña funciona', !errLogin && !!sesion?.session)
 

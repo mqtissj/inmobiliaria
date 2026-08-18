@@ -59,8 +59,17 @@ const config = [
 
 // ---------- 3. Usuario de prueba del panel ----------
 // Solo para desarrollo. El usuario real de la inmobiliaria se crea el día de la entrega.
-const TEST_EMAIL = 'pf-inmobiliaria@tbo.uy' // cambiado el 15/8/2026 a pedido de Matías
-const TEST_PASSWORD = 'pf-inmobiliaria-panel'
+//
+// LAS CREDENCIALES SALEN DE .env.local, NO DEL CODIGO (18/8/2026).
+// Estaban escritas acá en texto plano, y este repo es PUBLICO: cualquiera que
+// lo encontrara tenia usuario y contrasena del panel de produccion. .env.local
+// esta en .gitignore, asi que ahi no se publican.
+const TEST_EMAIL = process.env.PANEL_TEST_EMAIL
+const TEST_PASSWORD = process.env.PANEL_TEST_PASSWORD
+if (!TEST_EMAIL || !TEST_PASSWORD) {
+  console.error('Falta PANEL_TEST_EMAIL o PANEL_TEST_PASSWORD en .env.local — no se crea el usuario de prueba.')
+  process.exit(1)
+}
 {
   const { data } = await admin.auth.admin.listUsers()
   const existe = data?.users?.some((u) => u.email === TEST_EMAIL)
