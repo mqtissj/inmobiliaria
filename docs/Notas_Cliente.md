@@ -100,6 +100,30 @@ Lunes a viernes de 9 a 12 y de 15:30 a 18. **Sábados NO** (antes decía sábado
 
 Encontrado y corregido: el chip de WhatsApp del header (número entero + `whitespace-nowrap`) desbordaba 7px el viewport en 390px **en todas las páginas**. Ahora en celular el chip muestra solo el ícono (número en `sr-only`) y los gaps del nav se achican. Verificado sin desborde en /, /contacto, ficha y legales.
 
-### ⚠️ Hallazgo del mismo día: TB-004 no existe más
+---
+
+## 2026-08-18 (WhatsApp — hablado con su padre)
+
+**Origen:** mensajes del cliente por WhatsApp. Todo implementado ese día.
+
+### 1. Descripción del inicio dictada — HECHO
+
+El cliente dictó el texto final (dos párrafos: "En PF Negocios Inmobiliarios trabajamos desde 2021… / Contamos con experiencia en el mercado inmobiliario local…") y va **textual**. Pidió sacar "lo de campos" de la descripción — el título sigue diciendo "Casas, apartamentos y campos" (habló de la descripción, no del título; los campos siguen siendo el mayor ticket).
+
+### 2. Banco Santander MiCasa a la derecha del hero — HECHO
+
+"En el lado derecho más chiquito, igual que sobra espacio": tarjeta chica translúcida con borde, rotulada "Financiamiento", en la columna derecha del hero (en cel queda abajo de los logos).
+
+### 3. Logos de aseguradoras parejos — HECHO
+
+"Subí un poco el tamaño de las últimas dos": los cuatro chips ahora miden lo mismo (h-12). La jerarquía de MAPFRE y SURA la marca la frase de arriba ("También somos corredores de garantías de alquiler de MAPFRE y SURA, y trabajamos con Porto Seguro y Sancor" — también dictada).
+
+### 4. "Soy propietario" → "¿Tenés una propiedad para vender o alquilar?" — HECHO
+
+El botón de los filtros ahora usa la misma pregunta que el título del form de /contacto#propietarios. En cel ocupa su fila y no desborda.
+
+---
+
+### ⚠️ Hallazgo del 17/8: TB-004 no existe más
 
 Al correr `scripts/verify-setup.mjs` fallan los 3 checks del precio oculto: **TB-004 fue borrada de la base** (las propiedades actuales son TB-005–TB-008, datos reales del cliente). CLAUDE.md §4.2 la define como caso de prueba permanente. Hoy ninguna propiedad tiene `precio_publico=false`, así que el guardrail del precio oculto quedó sin caso vivo. **Decidir con Matías:** recrearla (aparecería en la web pública entre propiedades reales) o esperar a que el cliente cargue un campo real con precio reservado.

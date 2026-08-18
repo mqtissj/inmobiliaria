@@ -210,7 +210,7 @@ export function FilterPanel({
           href="/contacto#propietarios"
           className="ml-auto rounded-full border border-dashed border-pf-blue/60 px-4 py-1.5 text-sm font-semibold text-pf-blue transition-colors hover:bg-pf-blue-soft"
         >
-          Soy propietario ↗
+          ¿Tenés una propiedad para vender o alquilar? ↗
         </Link>
       </div>
 

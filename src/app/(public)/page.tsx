@@ -121,50 +121,65 @@ export default async function Home(props: PageProps<'/'>) {
             tenga más presencia". Los chips van en su barra blanca abajo,
             así conservan el mismo lenguaje visual en toda la página. */}
         <section className="bg-pf-blue">
-          <div className="mx-auto max-w-6xl px-4 py-12 sm:py-16">
-            <h1 className="max-w-xl text-balance font-display text-3xl font-semibold text-surface sm:text-4xl">
-              Casas, apartamentos y campos en Tacuarembó
-            </h1>
-            {/* Descripción "más hablada" — pedido del cliente (17/8, PREGUNTAS.txt) */}
-            <p className="mt-3 max-w-xl text-surface/85">
-              Somos una agencia inmobiliaria de Tacuarembó y desde 2021 trabajamos con casas,
-              apartamentos, campos y chacras — en venta, alquiler y traspaso. Atendemos en{' '}
-              {config.direccion.split(',')[0]} y por WhatsApp.
-            </p>
+          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:py-16 lg:grid-cols-[1fr_19rem] lg:gap-12">
+            <div>
+              <h1 className="max-w-xl text-balance font-display text-3xl font-semibold text-surface sm:text-4xl">
+                Casas, apartamentos y campos en Tacuarembó
+              </h1>
+              {/* Texto dictado por el cliente el 18/8 (WhatsApp, hablado con su
+                  padre) — va textual, sin campos en la descripción a pedido suyo */}
+              <p className="mt-3 max-w-xl text-surface/85">
+                En PF Negocios Inmobiliarios trabajamos desde 2021 ofreciendo soluciones
+                inmobiliarias en Tacuarembó. Nos especializamos en la venta y alquiler de
+                propiedades, brindando atención personalizada y acompañamiento durante todo el
+                proceso.
+              </p>
+              <p className="mt-3 max-w-xl text-surface/85">
+                Contamos con experiencia en el mercado inmobiliario local y trabajamos para
+                conectar cada propiedad con la persona adecuada, ofreciendo un servicio basado en
+                la confianza, el compromiso y la atención cercana.
+              </p>
 
-            {/* Corredores de garantías de alquiler (17/8): los cuatro con logo,
-                pero en dos niveles — MAPFRE y SURA son las principales (chips
-                más grandes), Porto Seguro y Sancor acompañan más chicos.
-                Santander MiCasa cierra la tira: financiamiento bancario, la
-                otra pata del negocio. */}
-            <div className="mt-7">
-              {/* El cliente pidió que esto se diga explícito, no como etiqueta (17/8) */}
-              <p className="max-w-xl text-sm font-semibold text-surface">
-                Somos corredores de garantías de alquiler de MAPFRE y SURA
-                <span className="font-normal text-surface/80">
-                  {' '}
-                  — y también trabajamos con Porto Seguro y Sancor.
-                </span>
-              </p>
-              <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
-                <span className="flex h-12 items-center rounded-md bg-surface px-4">
-                  <Image src={logoMapfre} alt="MAPFRE" className="h-6 w-auto" />
-                </span>
-                <span className="flex h-12 items-center rounded-md bg-surface px-4">
-                  <Image src={logoSura} alt="SURA" className="h-8 w-auto" />
-                </span>
-                <span className="flex h-9 items-center rounded-md bg-surface px-3">
-                  <Image src={logoPorto} alt="Porto Seguro" className="h-7 w-auto" />
-                </span>
-                <span className="flex h-9 items-center rounded-md bg-surface px-3">
-                  <Image src={logoSancor} alt="Sancor Seguros" className="h-4 w-auto" />
-                </span>
+              {/* Corredores de garantías (17-18/8): la jerarquía la marca la frase
+                  (MAPFRE y SURA nombradas como corredores); los logos van parejos
+                  a pedido del cliente del 18/8. */}
+              <div className="mt-7">
+                <p className="max-w-xl text-sm font-semibold text-surface">
+                  También somos corredores de garantías de alquiler de MAPFRE y SURA
+                  <span className="font-normal text-surface/80">
+                    , y trabajamos con Porto Seguro y Sancor.
+                  </span>
+                </p>
+                <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+                  <span className="flex h-12 items-center rounded-md bg-surface px-4">
+                    <Image src={logoMapfre} alt="MAPFRE" className="h-6 w-auto" />
+                  </span>
+                  <span className="flex h-12 items-center rounded-md bg-surface px-4">
+                    <Image src={logoSura} alt="SURA" className="h-8 w-auto" />
+                  </span>
+                  <span className="flex h-12 items-center rounded-md bg-surface px-3">
+                    <Image src={logoPorto} alt="Porto Seguro" className="h-9 w-auto" />
+                  </span>
+                  <span className="flex h-12 items-center rounded-md bg-surface px-4">
+                    <Image src={logoSancor} alt="Sancor Seguros" className="h-6 w-auto" />
+                  </span>
+                </div>
               </div>
-              <p className="mt-3 max-w-xl text-sm text-surface/85">
-                Además somos agentes MiCasa de Banco Santander: te gestionamos el financiamiento
-                de tu casa con el banco.
-              </p>
             </div>
+
+            {/* Banco Santander a la derecha, más chico — pedido del cliente (18/8):
+                "en el lado derecho más chiquito, igual que sobra espacio".
+                En cel el grid colapsa y queda abajo de los logos. */}
+            <aside className="self-center rounded-lg border border-surface/20 bg-surface/10 p-5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-surface/70">
+                Financiamiento
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-surface/90">
+                Somos agentes <span className="font-semibold text-surface">MiCasa</span> de{' '}
+                <span className="font-semibold text-surface">Banco Santander</span>: te
+                gestionamos el financiamiento de tu casa con el banco.
+              </p>
+            </aside>
           </div>
         </section>
         <section className="border-b border-line-soft bg-surface">
