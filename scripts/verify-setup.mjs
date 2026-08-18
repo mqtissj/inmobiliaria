@@ -23,19 +23,53 @@ function check(nombre, ok, detalle = '') {
   if (!ok) fallas++
 }
 
-// Precondición del test: TB-004 tiene precio cargado pero precio_publico=false.
-// (Caso de prueba permanente de CLAUDE.md §4.2 — nunca borrarla.)
-await admin.from('propiedades').update({ precio: 350000 }).eq('codigo', 'TB-004')
+/*
+  Caso de prueba del guardrail del precio, creado y borrado por esta misma
+  batería.
+
+  ANTES dependía de que existiera la propiedad TB-004 (CLAUDE.md §4.2). El
+  18/8/2026 esa fila se borró al limpiar datos de prueba, y con ella quedó SIN
+  VERIFICAR el guardrail más importante del sistema — el listado real pasó a
+  tener "0 en consultar". La batería falló, que es lo correcto, pero el
+  problema es que el chequeo dependía de que alguien no tocara una fila.
+
+  Ahora la batería se fabrica su propio caso: una propiedad con el precio
+  cargado pero NO publicado, y sin mostrar la dirección. Se borra al terminar.
+  Ventajas: no depende de datos que el cliente puede editar, y no deja una
+  propiedad falsa visible en la web de una inmobiliaria real y en producción.
+*/
+const CODIGO_PRUEBA = 'ZZGUARDRAIL'
+const PRECIO_SECRETO = 350000
+await admin.from('propiedades').delete().eq('codigo', CODIGO_PRUEBA) // por si quedó de una corrida cortada
+const { error: errSemilla } = await admin.from('propiedades').insert({
+  codigo: CODIGO_PRUEBA,
+  titulo: 'Verificación del guardrail — se borra sola',
+  operacion: 'venta',
+  tipo: 'campo',
+  estado: 'disponible', // tiene que estar en la view para poder probarla
+  departamento: 'Tacuarembó',
+  ciudad: 'Tacuarembó',
+  moneda: 'USD',
+  precio: PRECIO_SECRETO,
+  precio_publico: false,   // el dato que NO puede salir
+  mostrar_direccion: false, // el padrón tampoco
+  padron: '99999',
+})
+if (errSemilla) {
+  console.log(`FALLA  no se pudo crear el caso de prueba del guardrail — ${errSemilla.message}`)
+  process.exit(1)
+}
 
 // ---------- 1. Atacante con anon key ----------
 {
-  const { error } = await anon.from('propiedades').select('precio').eq('codigo', 'TB-004')
+  const { error } = await anon.from('propiedades').select('precio').eq('codigo', CODIGO_PRUEBA)
   check('anon NO puede leer la tabla propiedades directo', !!error, error?.message ?? 'pudo leerla!')
 }
 {
-  const { data } = await anon.from('propiedades_publicas').select('precio, padron, direccion').eq('codigo', 'TB-004').single()
-  check('view: precio de TB-004 llega null aunque en la tabla vale 350000', data != null && data.precio === null)
+  const { data } = await anon.from('propiedades_publicas').select('precio, padron, direccion').eq('codigo', CODIGO_PRUEBA).single()
+  check(`view: el precio oculto llega null aunque en la tabla vale ${PRECIO_SECRETO}`, data != null && data.precio === null)
   check('view: padrón oculto cuando mostrar_direccion=false', data != null && data.padron === null)
+  check('view: dirección oculta cuando mostrar_direccion=false', data != null && data.direccion === null)
 }
 {
   const { error } = await anon.from('propiedades').insert({ codigo: 'HACK-1', titulo: 'x', operacion: 'venta', tipo: 'casa' })
@@ -83,8 +117,8 @@ await admin.from('propiedades').update({ precio: 350000 }).eq('codigo', 'TB-004'
 
     const { data: todas, error: errSel } = await auth.from('propiedades').select('codigo, precio').order('codigo')
     check('panel lee la tabla completa (todas las filas)', !errSel && (todas?.length ?? 0) >= 4)
-    const tb4 = todas?.find((p) => p.codigo === 'TB-004')
-    check('panel SÍ ve el precio real de TB-004 (350000)', tb4?.precio === 350000)
+    const prueba = todas?.find((p) => p.codigo === CODIGO_PRUEBA)
+    check(`panel SÍ ve el precio real oculto (${PRECIO_SECRETO})`, prueba?.precio === PRECIO_SECRETO)
 
     const { error: errIns } = await auth.from('propiedades').insert({
       codigo: 'ZZVERIFY-1', titulo: 'fila de verificación — borrar', operacion: 'venta', tipo: 'casa',
@@ -92,6 +126,11 @@ await admin.from('propiedades').update({ precio: 350000 }).eq('codigo', 'TB-004'
     })
     check('panel puede insertar propiedades', !errIns, errIns?.message)
 
+    // delete primero: si una corrida anterior se corto antes de limpiar, el
+    // upload fallaria con "The resource already exists" y el check acusaria un
+    // problema de permisos que no existe. La bateria tiene que poder correrse
+    // dos veces seguidas y dar lo mismo.
+    await auth.storage.from('fotos-propiedades').remove(['zzverify/test.png'])
     const { error: errFotoUp } = await auth.storage
       .from('fotos-propiedades')
       .upload('zzverify/test.png', new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), { contentType: 'image/png' })
@@ -189,6 +228,21 @@ await admin.from('propiedades').update({ precio: 350000 }).eq('codigo', 'TB-004'
       sospechosas.length > 0 ? `encontradas: ${sospechosas.slice(0, 3).join(', ')}` : `${filas?.length ?? 0} filas revisadas`
     )
   }
+}
+
+/*
+  Limpieza del caso de prueba del guardrail.
+
+  OJO: mientras la bateria corre, esa propiedad esta 'disponible' y por lo tanto
+  VISIBLE en la web publica — son unos segundos, pero el sitio ya esta en
+  produccion. Por eso se borra si o si aca, y tambien al empezar por si una
+  corrida anterior quedo cortada a la mitad.
+  Si alguna vez ves "ZZGUARDRAIL" en la web, corre la bateria de nuevo.
+*/
+await admin.from('propiedades').delete().eq('codigo', CODIGO_PRUEBA)
+{
+  const { data: quedo } = await admin.from('propiedades').select('codigo').eq('codigo', CODIGO_PRUEBA)
+  check('el caso de prueba se borro de la base', (quedo?.length ?? 0) === 0, 'quedo colgado en produccion')
 }
 
 console.log(fallas === 0 ? '\nTodo verificado. El guardrail estructural está activo.' : `\n${fallas} CHECKS FALLARON — revisar antes de seguir.`)

@@ -18,6 +18,27 @@ import { urlAbsoluta } from '@/lib/site'
   (propiedades_publicas), así que una propiedad vendida o en borrador nunca
   puede colarse acá: el guardrail estructural también protege el sitemap.
 */
+/*
+  SIN ESTO EL SITEMAP SE CONGELA EN EL BUILD.
+
+  Detectado en produccion el 18/8/2026: la home mostraba TB-008 pero el
+  sitemap seguia listando solo TB-005/006/007, con `X-Vercel-Cache: HIT` y
+  sin ceder ni con cache-buster. La ruta se prerenderizaba una sola vez, al
+  compilar, y no se volvia a generar nunca.
+
+  Para una inmobiliaria eso es grave y silencioso: el cliente carga una
+  propiedad desde el panel, la ve publicada en la web, y Google no se entera
+  hasta que alguien vuelva a deployar. Justo las fichas nuevas —las que mas
+  interesa que se indexen rapido— son las que quedaban afuera.
+
+  Con revalidate, Vercel regenera la pagina como maximo una vez por hora.
+  Una hora es de sobra: Google no relee el sitemap mas seguido que eso, y
+  mantiene el costo en practicamente cero (una consulta por hora, no una por
+  visita). Ver docs de esta version en
+  node_modules/next/dist/docs/.../03-file-conventions/route.md
+*/
+export const revalidate = 3600
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Las institucionales, que existen siempre
   const fijas: MetadataRoute.Sitemap = [
