@@ -248,7 +248,15 @@ if (errSemilla) {
 await admin.from('propiedades').delete().eq('codigo', CODIGO_PRUEBA)
 {
   const { data: quedo } = await admin.from('propiedades').select('codigo').eq('codigo', CODIGO_PRUEBA)
-  check('el caso de prueba se borro de la base', (quedo?.length ?? 0) === 0, 'quedo colgado en produccion')
+  // El detalle se imprime pase o falle, asi que solo se pasa cuando hay algo
+  // que decir: antes se leia "PASA el caso de prueba se borro — quedo colgado
+  // en produccion", que dice justo lo contrario del resultado.
+  const colgado = (quedo?.length ?? 0) > 0
+  check(
+    'el caso de prueba se borro de la base',
+    !colgado,
+    colgado ? `quedo colgado en produccion: borra ${CODIGO_PRUEBA} a mano` : ''
+  )
 }
 
 console.log(fallas === 0 ? '\nTodo verificado. El guardrail estructural está activo.' : `\n${fallas} CHECKS FALLARON — revisar antes de seguir.`)
