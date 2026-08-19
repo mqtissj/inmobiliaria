@@ -22,6 +22,13 @@ export const metadata: Metadata = {
      antes de cualquier login (el code verifier de PKCE)
    - no mencionaba el conteo de intentos de acceso, que toca la IP
 
+  Revisión del 19/8/2026, al descartarse el asistente virtual (CLAUDE.md §8):
+  la sección "Si más adelante guardamos datos" anunciaba un asistente que iba a
+  pedir datos de contacto. Eso ya no va a existir, así que la promesa quedó
+  reescrita como lo que de verdad rige: hoy no se almacenan datos personales, y
+  si eso cambia se pide consentimiento y se actualiza esta página. Se movió la
+  fecha de vigencia, como manda la sección "Cambios" de esta misma política.
+
   Falta todavía la revisión de un abogado: esto es una auditoría técnica de
   que el texto coincide con el sistema, no asesoramiento legal.
 */
@@ -33,7 +40,7 @@ export default async function Privacidad() {
       <h1 className="font-display text-3xl font-semibold text-pf-navy">
         Política de privacidad
       </h1>
-      <p className="mt-1 text-sm text-ink-faint">Vigente desde el 17 de agosto de 2026</p>
+      <p className="mt-1 text-sm text-ink-faint">Vigente desde el 19 de agosto de 2026</p>
 
       <div className="mt-6 space-y-6 leading-relaxed text-ink-soft">
         <section>
@@ -136,12 +143,11 @@ export default async function Privacidad() {
             Si más adelante guardamos datos
           </h2>
           <p className="mt-2">
-            Está previsto incorporar un asistente virtual que pueda tomar tus datos de contacto
-            para que un asesor te responda. Cuando eso ocurra, te vamos a pedir{' '}
-            <strong>consentimiento explícito</strong> antes de guardar nada, vamos a registrar
-            junto con tus datos el texto exacto del consentimiento y la fecha, y esta política se
-            va a actualizar para explicar qué se guarda, para qué, por cuánto tiempo y cómo
-            pedirnos que lo borremos. Hasta entonces, nada de eso está funcionando.
+            Hoy esta web no almacena datos personales de quienes la visitan. Si eso llegara a
+            cambiar, te vamos a pedir <strong>consentimiento explícito</strong> antes de guardar
+            nada, vamos a registrar junto con tus datos el texto exacto del consentimiento y la
+            fecha, y esta política se va a actualizar para explicar qué se guarda, para qué, por
+            cuánto tiempo y cómo pedirnos que lo borremos.
           </p>
         </section>
 
