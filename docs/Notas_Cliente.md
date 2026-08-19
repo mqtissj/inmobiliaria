@@ -124,6 +124,20 @@ El botón de los filtros ahora usa la misma pregunta que el título del form de 
 
 ---
 
+## 2026-08-19
+
+### 1. Video de Santander en la tarjeta MiCasa — HECHO
+
+Video institucional del préstamo hipotecario (13 s, 2,4 MB, H.264) dentro de la tarjeta "Financiamiento" del hero. Arranca solo, mudo y en loop, con controles para activar el audio. Vive en `public/videos/santander.mp4`.
+
+### 2. Filtros: cochera, garaje y entrada para auto — HECHO
+
+Cochera y garaje ya existían; lo nuevo es **"Entrada para auto"** (`entrada_auto` en el array `caracteristicas`). Aparece en el panel de alta/edición y, como todos los chips, en la web recién cuando alguna propiedad lo tenga cargado.
+
+El SQL (`docs/sql/2026-08-19-entrada-auto.sql`) se corrió en Supabase el mismo 19/8 y quedó verificado contra la base: acepta `entrada_auto` y sigue rechazando valores fuera del vocabulario.
+
+---
+
 ### ⚠️ Hallazgo del 17/8: TB-004 no existe más
 
 Al correr `scripts/verify-setup.mjs` fallan los 3 checks del precio oculto: **TB-004 fue borrada de la base** (las propiedades actuales son TB-005–TB-008, datos reales del cliente). CLAUDE.md §4.2 la define como caso de prueba permanente. Hoy ninguna propiedad tiene `precio_publico=false`, así que el guardrail del precio oculto quedó sin caso vivo. **Decidir con Matías:** recrearla (aparecería en la web pública entre propiedades reales) o esperar a que el cliente cargue un campo real con precio reservado.

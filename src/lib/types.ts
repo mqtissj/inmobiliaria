@@ -31,7 +31,8 @@ export type TipoPatio = (typeof TIPOS_PATIO)[number]
 
 /*
   El resto son banderas y viven en un solo array `caracteristicas`.
-  ESTA LISTA ESPEJA EL CHECK DE LA BASE (docs/sql/2026-08-17-filtros-detallados).
+  ESTA LISTA ESPEJA EL CHECK DE LA BASE (docs/sql/2026-08-17-filtros-detallados,
+  ampliado por 2026-08-19-entrada-auto).
   Si agregás una acá, agregala también en SQL o la base va a rechazar el guardado.
 
   Se agrupan para pintarlas en la web y en el panel con los mismos títulos que
@@ -44,7 +45,10 @@ export const CARACTERISTICAS = {
     { valor: 'parrillero', etiqueta: 'Parrillero' },
     { valor: 'barbacoa', etiqueta: 'Barbacoa' },
   ],
-  Cochera: [{ valor: 'cochera', etiqueta: 'Cochera' }],
+  Cochera: [
+    { valor: 'cochera', etiqueta: 'Cochera' },
+    { valor: 'entrada_auto', etiqueta: 'Entrada para auto' },
+  ],
   Comodidades: [
     { valor: 'aire_acondicionado', etiqueta: 'Aire acondicionado' },
     { valor: 'calefaccion', etiqueta: 'Calefacción' },

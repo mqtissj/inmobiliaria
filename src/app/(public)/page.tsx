@@ -174,7 +174,22 @@ export default async function Home(props: PageProps<'/'>) {
               <p className="text-[11px] font-bold uppercase tracking-wider text-surface/70">
                 Financiamiento
               </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-surface/90">
+              {/* Video institucional MiCasa (pedido del cliente, 19/8). Arranca
+                  solo pero mudo — los navegadores bloquean autoplay con sonido —
+                  y con controles para poder activar el audio. Pesa 2,4 MB. */}
+              <video
+                className="mt-2.5 w-full rounded-md"
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls
+                aria-label="Video de Santander sobre el préstamo MiCasa"
+              >
+                <source src="/videos/santander.mp4" type="video/mp4" />
+                Tu navegador no puede reproducir este video.
+              </video>
+              <p className="mt-2.5 text-sm leading-relaxed text-surface/90">
                 Somos agentes <span className="font-semibold text-surface">MiCasa</span> de{' '}
                 <span className="font-semibold text-surface">Banco Santander</span>: te
                 gestionamos el financiamiento de tu casa con el banco.

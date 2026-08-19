@@ -113,7 +113,12 @@ export function FilterPanel({
         disponibles.patios.length > 0 ||
         CARACTERISTICAS.Exterior.some((c) => disponibles.caracteristicas.includes(c.valor)),
     },
-    { titulo: 'Cochera', hay: disponibles.hayGaraje || disponibles.caracteristicas.includes('cochera') },
+    {
+      titulo: 'Cochera',
+      hay:
+        disponibles.hayGaraje ||
+        CARACTERISTICAS.Cochera.some((c) => disponibles.caracteristicas.includes(c.valor)),
+    },
     {
       titulo: 'Comodidades',
       hay: CARACTERISTICAS.Comodidades.some((c) => disponibles.caracteristicas.includes(c.valor)),
@@ -273,14 +278,17 @@ export function FilterPanel({
 
             {grupos[2].hay && (
               <Grupo titulo="Cochera">
-                {disponibles.caracteristicas.includes('cochera') && (
+                {CARACTERISTICAS.Cochera.filter((c) =>
+                  disponibles.caracteristicas.includes(c.valor)
+                ).map((c) => (
                   <Link
-                    href={href(conCaracteristica('cochera'))}
-                    className={chip(actual.caracteristicas.includes('cochera'))}
+                    key={c.valor}
+                    href={href(conCaracteristica(c.valor))}
+                    className={chip(actual.caracteristicas.includes(c.valor))}
                   >
-                    Cochera
+                    {c.etiqueta}
                   </Link>
-                )}
+                ))}
                 {disponibles.hayGaraje && (
                   <Link
                     href={href({ ...actual, garaje: !actual.garaje })}
