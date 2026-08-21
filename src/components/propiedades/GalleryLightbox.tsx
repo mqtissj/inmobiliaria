@@ -5,12 +5,60 @@ import Image from 'next/image'
 import type { PropiedadFoto } from '@/lib/types'
 
 /*
-  Galería + lightbox sin librerías. La grilla muestra portada + 3 miniaturas;
-  si hay más, la última miniatura tapa con "+N". Cualquier foto abre el
-  visor a pantalla completa: ← → navegan, Esc cierra, el fondo también.
-  Los overlays respetan prefers-reduced-motion (transición solo de opacidad,
-  y ninguna si el sistema pide menos movimiento).
+  Galería + lightbox sin librerías. La grilla muestra la portada grande, dos
+  fotos chicas debajo y tres apiladas a la derecha; si hay más, la última tapa
+  con "+N". Cualquier foto abre el visor a pantalla completa: ← → navegan, Esc
+  cierra, el fondo también. Los overlays respetan prefers-reduced-motion
+  (transición solo de opacidad, y ninguna si el sistema pide menos movimiento).
 */
+
+/*
+  Una miniatura. Se saca afuera del componente a propósito: definida adentro,
+  React la trataría como un tipo nuevo en cada render y remontaría las <img>,
+  que es exactamente lo que hace parpadear una galería.
+*/
+function Miniatura({
+  foto,
+  indice,
+  titulo,
+  total,
+  restantes,
+  esUltima,
+  clases,
+  onAbrir,
+}: {
+  foto: PropiedadFoto
+  indice: number
+  titulo: string
+  total: number
+  restantes: number
+  esUltima: boolean
+  clases: string
+  onAbrir: (i: number) => void
+}) {
+  const conBadge = esUltima && restantes > 0
+  return (
+    <button
+      type="button"
+      onClick={() => onAbrir(indice)}
+      className={`relative cursor-zoom-in overflow-hidden rounded-lg ${clases}`}
+      aria-label={conBadge ? `Ver las ${total} fotos` : `Ver foto ${indice + 1} de ${titulo}`}
+    >
+      <Image
+        src={foto.url}
+        alt={`Foto ${indice + 1} de ${titulo}`}
+        fill
+        sizes="(max-width: 640px) 50vw, 22vw"
+        className="object-cover"
+      />
+      {conBadge && (
+        <span className="absolute inset-0 flex items-center justify-center bg-pf-navy/60 font-display text-lg font-semibold text-surface">
+          +{restantes} fotos
+        </span>
+      )}
+    </button>
+  )
+}
 export function GalleryLightbox({ fotos, titulo }: { fotos: PropiedadFoto[]; titulo: string }) {
   const [abierta, setAbierta] = useState<number | null>(null)
 
@@ -39,55 +87,92 @@ export function GalleryLightbox({ fotos, titulo }: { fotos: PropiedadFoto[]; tit
     }
   }, [abierta, cerrar, mover])
 
-  const miniaturas = fotos.slice(1, 4)
-  const restantes = fotos.length - 4
+  /*
+    Reparto de las fotos:
+      fotos[0]    -> la portada, grande
+      fotos[1..2] -> dos chicas DEBAJO de la portada
+      fotos[3..5] -> tres apiladas a la derecha
+    Se ven 6 como máximo; el resto se cuenta en el "+N fotos" de la última.
 
+    POR QUÉ las dos de abajo. La columna derecha son 3 miniaturas a 1/3 del
+    ancho, o sea 0,63 × ancho de alto. La portada es 2/3 del ancho en 16/10, o
+    sea 0,42 × ancho. Una fila de grid se estira hasta el elemento más alto, así
+    que sobraban ~0,2 × ancho (unos 200px) de blanco debajo de la portada en
+    cuanto una propiedad tenía 4 fotos o más. Ese hueco ahora lo ocupan estas
+    dos, que se estiran con flex-1 para llenar justo lo que sobre, sea cual sea
+    el ancho de la pantalla — nada de alturas calculadas a mano.
+  */
+  const abajo = fotos.slice(1, 3)
+  const derecha = fotos.slice(3, 6)
+  const restantes = fotos.length - 6
+  const indiceUltima = Math.min(fotos.length, 6) - 1
+
+  /*
+    Quién fija el alto: la columna IZQUIERDA, siempre, con proporciones fijas.
+    Portada en 16/10 más las dos de abajo en 3/2 dan 0,639 × ancho, que es
+    casi exactamente lo que miden 3 miniaturas a 1/3 de ancho (0,625 + gaps).
+    La diferencia queda en 1 o 2 píxeles a cualquier ancho de pantalla.
+
+    La columna derecha se adapta a ese alto: es flex y sus miniaturas van con
+    flex-1, así se reparten lo que haya sean 1, 2 o 3. Eso es lo que hace que
+    funcione igual con 4 fotos que con 20, sin ningún caso especial.
+    (Lo intenté al revés —alto fijo a la derecha y flex a la izquierda— y con
+    exactamente 4 fotos las de abajo colapsaban a cero.)
+  */
   return (
     <>
-      <div className={`grid gap-2 ${fotos.length > 1 ? 'sm:grid-cols-[2fr_1fr]' : ''}`}>
-        <button
-          type="button"
-          onClick={() => setAbierta(0)}
-          className="group relative aspect-[16/10] cursor-zoom-in overflow-hidden rounded-lg"
-          aria-label={`Ver las ${fotos.length} fotos de ${titulo}`}
-        >
-          <Image
-            src={fotos[0].url}
-            alt={`Foto principal de ${titulo}`}
-            fill
-            priority
-            sizes="(max-width: 640px) 100vw, 66vw"
-            className="object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.02]"
-          />
-        </button>
+      <div className={`grid gap-2 ${derecha.length > 0 ? 'sm:grid-cols-[2fr_1fr]' : ''}`}>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => setAbierta(0)}
+            className="group relative aspect-[16/10] cursor-zoom-in overflow-hidden rounded-lg"
+            aria-label={`Ver las ${fotos.length} fotos de ${titulo}`}
+          >
+            <Image
+              src={fotos[0].url}
+              alt={`Foto principal de ${titulo}`}
+              fill
+              priority
+              sizes="(max-width: 640px) 100vw, 66vw"
+              className="object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.02]"
+            />
+          </button>
 
-        {miniaturas.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-1">
-            {miniaturas.map((f, i) => {
-              const esUltima = i === miniaturas.length - 1 && restantes > 0
-              return (
-                <button
+          {abajo.length > 0 && (
+            <div className={`grid gap-2 ${abajo.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {abajo.map((f, i) => (
+                <Miniatura
                   key={f.id}
-                  type="button"
-                  onClick={() => setAbierta(i + 1)}
-                  className="relative aspect-[16/10] cursor-zoom-in overflow-hidden rounded-lg"
-                  aria-label={esUltima ? `Ver las ${fotos.length} fotos` : `Ver foto ${i + 2} de ${titulo}`}
-                >
-                  <Image
-                    src={f.url}
-                    alt={`Foto ${i + 2} de ${titulo}`}
-                    fill
-                    sizes="(max-width: 640px) 33vw, 22vw"
-                    className="object-cover"
-                  />
-                  {esUltima && (
-                    <span className="absolute inset-0 flex items-center justify-center bg-pf-navy/60 font-display text-lg font-semibold text-surface">
-                      +{restantes} fotos
-                    </span>
-                  )}
-                </button>
-              )
-            })}
+                  foto={f}
+                  indice={i + 1}
+                  titulo={titulo}
+                  total={fotos.length}
+                  restantes={restantes}
+                  esUltima={i + 1 === indiceUltima}
+                  clases="aspect-[3/2]"
+                  onAbrir={setAbierta}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {derecha.length > 0 && (
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-col">
+            {derecha.map((f, i) => (
+              <Miniatura
+                key={f.id}
+                foto={f}
+                indice={i + 3}
+                titulo={titulo}
+                total={fotos.length}
+                restantes={restantes}
+                esUltima={i + 3 === indiceUltima}
+                clases="aspect-[16/10] sm:aspect-auto sm:flex-1"
+                onAbrir={setAbierta}
+              />
+            ))}
           </div>
         )}
       </div>
