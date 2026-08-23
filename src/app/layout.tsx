@@ -21,7 +21,18 @@ export const metadata: Metadata = {
   // quedara clavado, las imágenes que se ven al compartir por WhatsApp y las
   // URLs canónicas seguirían apuntando al dominio viejo.
   metadataBase: new URL(SITIO),
-  alternates: { canonical: "/" },
+  // ACÁ NO VA `alternates.canonical`.
+  //
+  // La metadata del layout raíz la HEREDA toda página que no la pise. Con
+  // `canonical: "/"` puesto acá, /contacto, /terminos, /privacidad y las 11
+  // fichas de propiedad declaraban a la home como su versión buena — o sea,
+  // "no me indexes a mí, indexá la home". Google hizo exactamente eso: el
+  // 23/8/2026 avisó por Search Console "Página alternativa con etiqueta
+  // canónica adecuada" y de las 15 URLs del sitio solo la home entraba al
+  // índice. Las fichas de propiedad, que son las que traen a alguien
+  // buscando "casa en venta Tacuarembó", quedaban afuera.
+  //
+  // La canónica es POR PÁGINA y va en cada página, la home incluida.
   title: {
     default: "PF Negocios Inmobiliarios — Tacuarembó",
     template: "%s · PF Negocios Inmobiliarios",

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { linkWhatsApp } from '@/lib/format'
@@ -12,6 +13,22 @@ import { ErrorBox } from '@/components/ui/ErrorBox'
 import { WhatsAppLink } from '@/components/ui/WhatsAppLink'
 import { FilterPanel, resumenFiltros } from '@/components/propiedades/FilterPanel'
 import { PropertyCard } from '@/components/propiedades/PropertyCard'
+
+/*
+  La canónica de la home es "/" A SECAS, sin los filtros.
+
+  Los filtros viven en la URL (?operacion=venta&tipo=casa&caract=...), así que
+  esta misma página existe en cientos de combinaciones que muestran recortes
+  del mismo listado. Sin esta línea Google las trata como páginas distintas,
+  reparte entre todas la fuerza que debería concentrar una sola, y puede
+  terminar mostrando en los resultados una combinación de filtros rara en vez
+  de la home limpia.
+
+  Esto NO se hereda al resto del sitio: cada página declara la suya.
+*/
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+}
 
 /*
   Home: hero + filtros + grilla + FAQs reales + cierre de contacto.

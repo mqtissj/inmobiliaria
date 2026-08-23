@@ -32,6 +32,13 @@ export async function generateMetadata(
   return {
     title: `${p.titulo} · ${p.codigo}`,
     description: descripcion,
+    // getPropiedadPorCodigo busca con ilike, así que /propiedades/TB-015 y
+    // /propiedades/tb-015 devuelven las DOS un 200 con la misma ficha (probado
+    // en producción el 23/8/2026). Para Google eso son dos páginas duplicadas.
+    // La canónica se arma con el código de la BASE en minúscula —no con el que
+    // vino en la URL—, que es la forma que ya usan el sitemap y los links de
+    // las tarjetas del listado.
+    alternates: { canonical: `/propiedades/${p.codigo.toLowerCase()}` },
     openGraph: {
       title: `${p.titulo} · ${p.operacion.charAt(0).toUpperCase() + p.operacion.slice(1)}`,
       description: descripcion,

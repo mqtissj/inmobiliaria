@@ -7,6 +7,7 @@ import { PropietarioForm } from './PropietarioForm'
 
 export const metadata: Metadata = {
   title: 'Contacto',
+  alternates: { canonical: '/contacto' },
   description:
     'Escribile a PF Negocios Inmobiliarios por WhatsApp, agendá una cita, visitá el local en 25 de Mayo 329, Tacuarembó, o contanos qué propiedad querés vender o alquilar.',
 }

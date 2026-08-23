@@ -4,6 +4,7 @@ import { linkWhatsApp } from '@/lib/format'
 
 export const metadata: Metadata = {
   title: 'Política de privacidad',
+  alternates: { canonical: '/privacidad' },
   description:
     'Cómo maneja los datos personales la web de PF Negocios Inmobiliarios, según la Ley 18.331 de Uruguay.',
 }

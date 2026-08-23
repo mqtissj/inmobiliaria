@@ -4,6 +4,7 @@ import { getConfig } from '@/lib/queries'
 
 export const metadata: Metadata = {
   title: 'Términos y condiciones',
+  alternates: { canonical: '/terminos' },
   description:
     'Condiciones de uso de la web de PF Negocios Inmobiliarios: alcance de la información publicada y cómo se concretan las operaciones.',
 }
