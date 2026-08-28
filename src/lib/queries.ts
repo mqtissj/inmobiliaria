@@ -19,10 +19,46 @@ import type { ConfigNegocio, Faq, Propiedad, PropiedadFoto } from './types'
 
 const VIEW_PUBLICA = 'propiedades_publicas'
 
+/*
+  Respaldo de los datos del negocio. NO es la fuente de verdad: manda la tabla
+  config_negocio, y si la inmobiliaria cambia el horario se cambia ahí.
+
+  Existe por el incidente del 28/8/2026: Supabase devolvió páginas HTML de
+  error (504, 525 y 520 de Cloudflare) en vez de JSON, getConfig() tiró, y como
+  corre en el layout público ese throw se llevó puesta TODA la web con un 500 —
+  la home, contacto, términos, privacidad y cada ficha de propiedad. Un hipo de
+  la base no puede dejar a la inmobiliaria sin sitio.
+
+  Un teléfono viejo por unos minutos es muchísimo mejor que un 500. Si el
+  cliente cambia estos datos, actualizarlos también acá: son los mismos que
+  carga scripts/setup-dev.mjs.
+*/
+const CONFIG_RESPALDO: ConfigNegocio = {
+  nombre: 'PF Negocios Inmobiliarios',
+  direccion: '25 de Mayo 329, Tacuarembó',
+  telefono: '098 756 490',
+  horario: 'Lunes a viernes de 9 a 12 y de 15:30 a 18',
+  whatsapp: '59898756490', // formato wa.me, sin + ni espacios
+  instagram: 'pf_negocios_inmobiliarios',
+  facebook: 'inmb.catalina',
+}
+
 export const getConfig = cache(async (): Promise<ConfigNegocio> => {
-  const { data, error } = await supabase.from('config_negocio').select('clave, valor')
-  if (error) throw new Error(`No se pudo leer la configuración: ${error.message}`)
-  return Object.fromEntries((data ?? []).map((r) => [r.clave, r.valor])) as ConfigNegocio
+  try {
+    const { data, error } = await supabase.from('config_negocio').select('clave, valor')
+    if (error) throw new Error(error.message)
+    // Clave vacía o faltante cae al respaldo: media config es peor que ninguna
+    // — un whatsapp vacío es un link roto en el header de todas las páginas.
+    const leida = Object.fromEntries(
+      (data ?? []).filter((r) => r.valor).map((r) => [r.clave, r.valor])
+    )
+    return { ...CONFIG_RESPALDO, ...leida }
+  } catch (e) {
+    // Queda en los logs de Vercel a propósito: el sitio no se cae, pero el
+    // problema tiene que seguir siendo visible para nosotros.
+    console.error('config_negocio no se pudo leer, se usa el respaldo:', e)
+    return CONFIG_RESPALDO
+  }
 })
 
 export interface FiltrosListado {
