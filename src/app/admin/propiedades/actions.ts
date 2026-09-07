@@ -7,9 +7,10 @@
 // en Server Actions de Next 16) — suben/bajan directo del navegador al bucket
 // con la sesión del usuario. Acá viajan datos y URLs, y toda action re-verifica
 // la sesión: son endpoints POST públicos aunque el form esté detrás del login.
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { supabaseServer } from '@/lib/supabase-server'
+import { TAG_PROPIEDADES } from '@/lib/queries'
 import {
   CARACTERISTICAS_VALIDAS,
   esAlquilerOTraspaso,
@@ -203,6 +204,27 @@ function armarFila(formData: FormData): { error: string } | { fila: Record<strin
   }
 }
 
+/*
+  Todo lo que cambia una propiedad pasa por acá.
+
+  revalidatePath tira los HTML cacheados de las rutas. revalidateTag tira la
+  LECTURA cacheada de la base (src/lib/queries.ts), que desde el 6/9/2026 se
+  guarda hasta 300 segundos para no consultar Supabase en cada visita.
+
+  Hacen falta LAS DOS: sin el tag, el HTML se vuelve a generar pero con la lista
+  vieja en memoria, y el cliente carga una propiedad, ve que "se publicó" y no
+  aparece en la web hasta cinco minutos después.
+*/
+function invalidarPropiedad(codigo?: string) {
+  // `{ expire: 0 }` y no 'max': con 'max' Next sirve la lista VIEJA mientras
+  // refresca por atrás, y el cliente que acaba de publicar no ve su propiedad.
+  // Con expire 0 la entrada muere ya y el próximo request espera el dato fresco.
+  // (La forma de un solo argumento quedó deprecada en Next 16.)
+  revalidateTag(TAG_PROPIEDADES, { expire: 0 })
+  revalidatePath('/')
+  if (codigo) revalidatePath(`/propiedades/${codigo.toLowerCase()}`)
+}
+
 async function usuarioActual() {
   const supabase = await supabaseServer()
   const {
@@ -226,8 +248,7 @@ export async function crearPropiedad(previo: EstadoGuardar, formData: FormData):
     return fallo(mensajeDeBase(error, 'crearPropiedad'), previo, formData)
   }
 
-  revalidatePath('/')
-  revalidatePath(`/propiedades/${res.codigo.toLowerCase()}`)
+  invalidarPropiedad(res.codigo)
   return { error: null, ok: { id: data.id, codigo: data.codigo } }
 }
 
@@ -257,8 +278,7 @@ export async function actualizarPropiedad(previo: EstadoGuardar, formData: FormD
     return fallo(mensajeDeBase(error, 'actualizarPropiedad'), previo, formData)
   }
 
-  revalidatePath('/')
-  revalidatePath(`/propiedades/${res.codigo.toLowerCase()}`)
+  invalidarPropiedad(res.codigo)
   if (codigoAnterior && codigoAnterior !== res.codigo) {
     revalidatePath(`/propiedades/${codigoAnterior.toLowerCase()}`)
   }
@@ -297,8 +317,7 @@ export async function eliminarPropiedad(formData: FormData): Promise<void> {
   const { error } = await supabase.from('propiedades').delete().eq('id', id)
   if (error) redirect(`/admin?error=borrar&codigo=${encodeURIComponent(codigo)}`)
 
-  revalidatePath('/')
-  if (codigo) revalidatePath(`/propiedades/${codigo.toLowerCase()}`)
+  invalidarPropiedad(codigo)
   // La propiedad sale de la web igual; si quedó basura en el bucket, se avisa.
   redirect(
     `/admin?borrada=${encodeURIComponent(codigo)}${archivosHuerfanos ? '&fotos=huerfanas' : ''}`
@@ -322,8 +341,7 @@ export async function registrarFotos(
 
   if (error) return { error: 'Las fotos subieron pero no se pudieron vincular a la propiedad.' }
 
-  revalidatePath('/')
-  revalidatePath(`/propiedades/${codigo.toLowerCase()}`)
+  invalidarPropiedad(codigo)
   return { error: null }
 }
 
@@ -346,7 +364,6 @@ export async function borrarFoto(fotoId: string, codigo: string): Promise<{ erro
   const { error } = await supabase.from('propiedad_fotos').delete().eq('id', fotoId)
   if (error) return { error: 'No se pudo borrar la foto. Probá de nuevo.' }
 
-  revalidatePath('/')
-  revalidatePath(`/propiedades/${codigo.toLowerCase()}`)
+  invalidarPropiedad(codigo)
   return { error: null }
 }
