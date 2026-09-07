@@ -1,4 +1,20 @@
 import Link from 'next/link'
+
+/*
+  POR QUÉ TODOS LOS <Link> DE ACÁ VAN CON prefetch={false}
+
+  Next prefetchea los <Link> cuando entran en pantalla (solo en producción).
+  Cada chip de acá apunta a la home con otra combinación de filtros, y la home
+  es dinámica: prefetchearla NO es traer un archivo, es hacer que el servidor la
+  renderice entera y consulte la base.
+
+  Medido el 6/9/2026 contra un proxy que cuenta las llamadas: una visita por
+  curl cuesta 5 consultas; la misma visita en un navegador, scrolleada hasta el
+  final, cuesta 11. Más del doble, para adivinar filtros que nadie pidió.
+
+  Las tarjetas de propiedad SÍ conservan el prefetch: van a una ficha cacheada
+  (revalidate = 300), es barato y es la navegación que la gente hace de verdad.
+*/
 import { CARACTERISTICAS, etiquetaCaracteristica } from '@/lib/types'
 import { DormitoriosSelect } from './DormitoriosSelect'
 
@@ -152,23 +168,27 @@ export function FilterPanel({
     <div className="space-y-3">
       {/* ---------- Fila principal ---------- */}
       <div className="flex flex-wrap items-center gap-2">
-        <Link href={href({ ...actual, operacion: undefined })} className={chip(!actual.operacion)}>
+        <Link
+          prefetch={false}
+          href={href({ ...actual, operacion: undefined })}
+          className={chip(!actual.operacion)}
+        >
           Todas
         </Link>
-        <Link
+        <Link prefetch={false}
           href={href({ ...actual, operacion: 'venta' })}
           className={chip(actual.operacion === 'venta')}
         >
           Comprar
         </Link>
-        <Link
+        <Link prefetch={false}
           href={href({ ...actual, operacion: 'alquiler' })}
           className={chip(actual.operacion === 'alquiler')}
         >
           Alquilar
         </Link>
         {disponibles.hayTraspasos && (
-          <Link
+          <Link prefetch={false}
             href={href({ ...actual, operacion: 'traspaso' })}
             className={chip(actual.operacion === 'traspaso')}
           >
@@ -180,7 +200,7 @@ export function FilterPanel({
           <>
             {separador}
             {disponibles.tipos.map((t) => (
-              <Link
+              <Link prefetch={false}
                 key={t}
                 href={href({ ...actual, tipo: actual.tipo === t ? undefined : t })}
                 className={chip(actual.tipo === t)}
@@ -211,7 +231,7 @@ export function FilterPanel({
         {/* NO es un filtro: es la puerta al formulario de propietarios. Se ve
             distinto (borde punteado, sin relleno) justamente para que nadie
             espere que filtre el listado. */}
-        <Link
+        <Link prefetch={false}
           href="/contacto#propietarios"
           className="ml-auto rounded-full border border-dashed border-pf-blue/60 px-4 py-1.5 text-sm font-semibold text-pf-blue transition-colors hover:bg-pf-blue-soft"
         >
@@ -232,7 +252,7 @@ export function FilterPanel({
             {grupos[0].hay && (
               <Grupo titulo="Baños">
                 {Array.from({ length: disponibles.banosMax }, (_, i) => i + 1).map((n) => (
-                  <Link
+                  <Link prefetch={false}
                     key={n}
                     href={href({ ...actual, banos: actual.banos === n ? undefined : n })}
                     className={chip(actual.banos === n)}
@@ -241,7 +261,7 @@ export function FilterPanel({
                   </Link>
                 ))}
                 {disponibles.caracteristicas.includes('bano_completo') && (
-                  <Link
+                  <Link prefetch={false}
                     href={href(conCaracteristica('bano_completo'))}
                     className={chip(actual.caracteristicas.includes('bano_completo'))}
                   >
@@ -254,7 +274,7 @@ export function FilterPanel({
             {grupos[1].hay && (
               <Grupo titulo="Exterior">
                 {disponibles.patios.map((t) => (
-                  <Link
+                  <Link prefetch={false}
                     key={t}
                     href={href({ ...actual, patio: actual.patio === t ? undefined : t })}
                     className={chip(actual.patio === t)}
@@ -265,7 +285,7 @@ export function FilterPanel({
                 {CARACTERISTICAS.Exterior.filter((c) =>
                   disponibles.caracteristicas.includes(c.valor)
                 ).map((c) => (
-                  <Link
+                  <Link prefetch={false}
                     key={c.valor}
                     href={href(conCaracteristica(c.valor))}
                     className={chip(actual.caracteristicas.includes(c.valor))}
@@ -281,7 +301,7 @@ export function FilterPanel({
                 {CARACTERISTICAS.Cochera.filter((c) =>
                   disponibles.caracteristicas.includes(c.valor)
                 ).map((c) => (
-                  <Link
+                  <Link prefetch={false}
                     key={c.valor}
                     href={href(conCaracteristica(c.valor))}
                     className={chip(actual.caracteristicas.includes(c.valor))}
@@ -290,7 +310,7 @@ export function FilterPanel({
                   </Link>
                 ))}
                 {disponibles.hayGaraje && (
-                  <Link
+                  <Link prefetch={false}
                     href={href({ ...actual, garaje: !actual.garaje })}
                     className={chip(actual.garaje)}
                   >
@@ -305,7 +325,7 @@ export function FilterPanel({
                 {CARACTERISTICAS.Comodidades.filter((c) =>
                   disponibles.caracteristicas.includes(c.valor)
                 ).map((c) => (
-                  <Link
+                  <Link prefetch={false}
                     key={c.valor}
                     href={href(conCaracteristica(c.valor))}
                     className={chip(actual.caracteristicas.includes(c.valor))}
@@ -319,7 +339,7 @@ export function FilterPanel({
             {grupos[4].hay && (
               <Grupo titulo="Mascotas">
                 {disponibles.hayMascotasSi && (
-                  <Link
+                  <Link prefetch={false}
                     href={href({ ...actual, mascotas: actual.mascotas === 'si' ? undefined : 'si' })}
                     className={chip(actual.mascotas === 'si')}
                   >
@@ -327,7 +347,7 @@ export function FilterPanel({
                   </Link>
                 )}
                 {disponibles.hayMascotasNo && (
-                  <Link
+                  <Link prefetch={false}
                     href={href({ ...actual, mascotas: actual.mascotas === 'no' ? undefined : 'no' })}
                     className={chip(actual.mascotas === 'no')}
                   >
@@ -340,7 +360,7 @@ export function FilterPanel({
             {grupos[5].hay && (
               <Grupo titulo="Ideal para">
                 {disponibles.ideales.map((v) => (
-                  <Link
+                  <Link prefetch={false}
                     key={v}
                     href={href({ ...actual, ideal: actual.ideal === v ? undefined : v })}
                     className={chip(actual.ideal === v)}

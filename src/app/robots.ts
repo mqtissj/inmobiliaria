@@ -26,6 +26,28 @@ export default function robots(): MetadataRoute.Robots {
         '/recuperar',
         '/nueva-contrasena',
         '/auth/', // el callback de los links de mail
+        /*
+          LA HOME CON FILTROS NO SE RECORRE. Esta línea es la que baja la cuenta
+          de Supabase, así que no sacarla sin mirar el consumo primero.
+
+          Los 18 chips de filtro se combinan entre sí (?operacion=venta&tipo=casa
+          &caract=parrillero,barbacoa&...), o sea que la home existe en miles de
+          URLs distintas, todas con 200 y todas linkeadas desde la home. Para un
+          buscador eso es una invitación a recorrerlas todas, y cada una le cuesta
+          a la base 5 consultas.
+
+          Medido el 6/9/2026: 14 millones de llamadas a Supabase en 30 días. Que
+          eran crawlers y no gente se ve en la proporción — propiedades_publicas
+          contra config_negocio da 2:1 exacto, que es lo que gasta un render SIN
+          JavaScript; un navegador de verdad da 5:1. Y propiedad_fotos tenía 51K
+          contra 7,2M: nadie estaba entrando a las fichas.
+
+          No se pierde NADA de SEO: todas estas URLs ya declaran la home como
+          canónica (ver src/app/(public)/page.tsx), así que Google nunca las iba a
+          indexar — solo las recorría. Las páginas que sí importan (la home, las
+          institucionales y las fichas) siguen permitidas y están en el sitemap.
+        */
+        '/?*',
       ],
     },
     sitemap: urlAbsoluta('/sitemap.xml'),
