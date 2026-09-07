@@ -1,29 +1,43 @@
 /*
-  Verifica que filtrar EN MEMORIA da exactamente lo mismo que filtraba Postgres.
+  Verifica dos cosas que, si se rompen, no se notan mirando la web.
 
-  Por qué existe: hasta el 6/9/2026 cada combinación de filtros era su propia
-  consulta con WHERE. Ahora se trae la lista entera una sola vez (cacheada) y se
-  filtra en JS, para que los crawlers no cuesten una consulta por URL. El riesgo
-  de ese cambio es sutil: que algún filtro devuelva de más o de menos y nadie se
-  dé cuenta hasta que un cliente no encuentre su propiedad.
+  1) QUE FILTRAR EN MEMORIA DÉ LO MISMO QUE FILTRABA POSTGRES.
+     Hasta el 6/9/2026 cada combinación era su propia consulta con WHERE. Ahora
+     se trae la lista entera una vez y se filtra con `filtrarPropiedades`. El
+     riesgo es sutil: que un filtro devuelva de más o de menos y nadie se entere
+     hasta que un cliente no encuentre su propiedad.
 
-  Cómo funciona: para cada combinación le pide la home AL SITIO (o sea, al código
-  de verdad, no a una copia de la lógica) y compara los códigos que muestra
-  contra los que devuelve Postgres con el WHERE equivalente. Compara el ORDEN
-  además del contenido: el listado sale ordenado por destacada y fecha.
+     Se compara la FUNCIÓN DE VERDAD (src/lib/filtros.ts, la misma que corren el
+     servidor y el navegador) contra el WHERE equivalente en Postgres. Antes esto
+     se hacía pidiéndole HTML al sitio; desde el 7/9 los filtros corren en el
+     navegador, así que el HTML del servidor ya no refleja el filtro y había que
+     cambiar el método.
+
+  2) QUE LA HOME SIGA TRAYENDO EL LISTADO COMPLETO EN EL HTML.
+     La home es estática y los filtros los aplica el navegador, así que lo que
+     queda en el HTML es el listado SIN filtrar. Eso es lo que lee Google. Si
+     alguien cambia el fallback del <Suspense> por un "cargando", el sitio se
+     sigue viendo bien y la home se cae del índice sin aviso.
+     Este chequeo corre solo si se le pasa una URL.
 
   Uso:
-    node scripts/verificar-filtros.mjs [url-del-sitio]
-    node scripts/verificar-filtros.mjs http://localhost:3100
+    node scripts/verificar-filtros.mjs                        (solo los filtros)
+    node scripts/verificar-filtros.mjs http://localhost:3100  (además, el HTML)
+    node scripts/verificar-filtros.mjs https://pfinmobiliaria.uy
 */
-import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const SITIO = (process.argv[2] ?? 'http://localhost:3100').replace(/\/+$/, '')
+const RAIZ = fileURLToPath(new URL('..', import.meta.url))
+const SITIO = process.argv[2]?.replace(/\/+$/, '')
 
 // Lee .env.local sin dependencias: el script se corre a mano, no en el build.
 const env = Object.fromEntries(
-  readFileSync(fileURLToPath(new URL('../.env.local', import.meta.url)), 'utf8')
+  readFileSync(join(RAIZ, '.env.local'), 'utf8')
     .split('\n')
     .filter((l) => l.trim() && !l.trim().startsWith('#'))
     .map((l) => {
@@ -35,9 +49,39 @@ const BASE = env.NEXT_PUBLIC_SUPABASE_URL
 const CLAVE = env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 /*
-  Cada caso: los filtros como los recibe la URL de la web, y los mismos filtros
-  como los escribe PostgREST. El WHERE de acá es el que tenía queries.ts antes
-  del cambio — es la fuente de verdad contra la que se compara.
+  filtros.ts es TypeScript y Node no resuelve sus imports sin extensión, así que
+  se compila con el tsc del propio proyecto a un directorio temporal. A CommonJS
+  a propósito: resuelve `./types` sin extensión, cosa que ESM no hace.
+  Se compila la función REAL — no una copia — que es todo el punto del script.
+*/
+const salida = mkdtempSync(join(tmpdir(), 'pf-filtros-'))
+let filtrarPropiedades, leerFiltros
+try {
+  // Se invoca el tsc de node_modules con node, no `npx`: en Windows el spawn de
+  // npx.cmd falla, y así tampoco depende de que tsc esté instalado global.
+  execFileSync(
+    process.execPath,
+    [
+      join(RAIZ, 'node_modules', 'typescript', 'bin', 'tsc'),
+      'src/lib/filtros.ts',
+      '--outDir', salida,
+      '--module', 'commonjs',
+      '--target', 'es2022',
+      '--skipLibCheck',
+    ],
+    { cwd: RAIZ, stdio: 'pipe' }
+  )
+  ;({ filtrarPropiedades, leerFiltros } = createRequire(join(RAIZ, 'package.json'))(
+    join(salida, 'filtros.js')
+  ))
+} finally {
+  process.on('exit', () => rmSync(salida, { recursive: true, force: true }))
+}
+
+/*
+  Cada caso: los filtros como llegan en la URL, y los mismos filtros como los
+  escribe PostgREST. El WHERE de acá es el que tenía queries.ts antes del cambio
+  — es la fuente de verdad contra la que se compara.
 */
 const CASOS = [
   ['sin filtros', '', []],
@@ -96,50 +140,58 @@ const CASOS = [
   ],
 ]
 
-/** Los códigos que muestra la web, en el orden en que aparecen. */
-async function codigosDelSitio(qs) {
-  const r = await fetch(`${SITIO}/${qs ? '?' + qs : ''}`)
-  if (!r.ok) throw new Error(`el sitio devolvio ${r.status} para "${qs}"`)
-  const html = await r.text()
-  const vistos = new Set()
-  for (const m of html.matchAll(/\/propiedades\/(tb-\d+)/gi)) vistos.add(m[1].toLowerCase())
-  return [...vistos]
-}
-
-/** Los códigos que devuelve Postgres con el WHERE equivalente. */
-async function codigosDeLaBase(where) {
-  const qs = [
-    'select=codigo',
-    'order=destacada.desc,creado_en.desc',
-    ...where,
-  ].join('&')
+async function pedirALaBase(where = []) {
+  const qs = ['select=*', 'order=destacada.desc,creado_en.desc', ...where].join('&')
   const r = await fetch(`${BASE}/rest/v1/propiedades_publicas?${qs}`, {
     headers: { apikey: CLAVE, Authorization: `Bearer ${CLAVE}` },
   })
   if (!r.ok) throw new Error(`la base devolvio ${r.status}: ${await r.text()}`)
-  return (await r.json()).map((p) => p.codigo.toLowerCase())
+  return r.json()
 }
 
+const codigos = (props) => props.map((p) => p.codigo.toLowerCase())
+
 let fallas = 0
-console.log(`Comparando ${CASOS.length} combinaciones contra ${SITIO}\n`)
+
+// --- 1) equivalencia de filtros -------------------------------------------
+const todas = await pedirALaBase()
+console.log(`Comparando ${CASOS.length} combinaciones contra Postgres (${todas.length} propiedades)\n`)
 
 for (const [nombre, qs, where] of CASOS) {
-  const [web, base] = await Promise.all([codigosDelSitio(qs), codigosDeLaBase(where)])
-  const igual = web.length === base.length && web.every((c, i) => c === base[i])
+  const enMemoria = codigos(filtrarPropiedades(todas, leerFiltros(new URLSearchParams(qs))))
+  const enLaBase = codigos(await pedirALaBase(where))
+  const igual =
+    enMemoria.length === enLaBase.length && enMemoria.every((c, i) => c === enLaBase[i])
   if (igual) {
-    console.log(`  OK    ${nombre.padEnd(38)} ${base.length} propiedades`)
+    console.log(`  OK    ${nombre.padEnd(38)} ${enLaBase.length} propiedades`)
   } else {
     fallas++
     console.log(`  FALLA ${nombre}`)
-    console.log(`        la web muestra: ${web.join(', ') || '(ninguna)'}`)
-    console.log(`        la base espera: ${base.join(', ') || '(ninguna)'}`)
+    console.log(`        en memoria: ${enMemoria.join(', ') || '(ninguna)'}`)
+    console.log(`        en la base: ${enLaBase.join(', ') || '(ninguna)'}`)
+  }
+}
+
+// --- 2) el HTML de la home tiene que traer el listado completo -------------
+if (SITIO) {
+  console.log(`\nRevisando el HTML de ${SITIO} (sin ejecutar JavaScript, como un crawler)\n`)
+  const html = await (await fetch(SITIO)).text()
+  const enHtml = new Set([...html.matchAll(/\/propiedades\/(tb-\d+)/gi)].map((m) => m[1].toLowerCase()))
+  const faltan = codigos(todas).filter((c) => !enHtml.has(c))
+  if (faltan.length === 0) {
+    console.log(`  OK    las ${todas.length} propiedades estan en el HTML estatico`)
+  } else {
+    fallas++
+    console.log(`  FALLA faltan en el HTML: ${faltan.join(', ')}`)
+    console.log(`        el fallback del <Suspense> en (public)/page.tsx tiene que ser`)
+    console.log(`        el listado completo, no un "cargando".`)
   }
 }
 
 console.log()
 if (fallas === 0) {
-  console.log(`Todo coincide: filtrar en memoria da lo mismo que el WHERE, en el mismo orden.`)
+  console.log('Todo bien.')
 } else {
-  console.log(`${fallas} de ${CASOS.length} combinaciones NO coinciden.`)
+  console.log(`${fallas} chequeo(s) fallaron.`)
   process.exit(1)
 }

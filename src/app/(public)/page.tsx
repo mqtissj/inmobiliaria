@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -11,8 +12,10 @@ import { getConfig, getFaqs, getPortadas, getPropiedadesPublicas } from '@/lib/q
 import { CARACTERISTICAS_VALIDAS, IDEAL_PARA, TIPOS_PATIO } from '@/lib/types'
 import { ErrorBox } from '@/components/ui/ErrorBox'
 import { WhatsAppLink } from '@/components/ui/WhatsAppLink'
-import { FilterPanel, resumenFiltros } from '@/components/propiedades/FilterPanel'
-import { PropertyCard } from '@/components/propiedades/PropertyCard'
+import {
+  FiltrosYListado,
+  ListadoFiltrado,
+} from '@/components/propiedades/ListadoFiltrado'
 
 /*
   La canónica de la home es "/" A SECAS, sin los filtros.
@@ -36,58 +39,39 @@ export const metadata: Metadata = {
   la página se renderiza en el servidor en cada request — para el volumen de
   una inmobiliaria de Tacuarembó eso es lo simple y alcanza de sobra.
 */
-export default async function Home(props: PageProps<'/'>) {
-  const sp = await props.searchParams
-  const texto = (v: unknown) => (typeof v === 'string' ? v : undefined)
-  const operacion = texto(sp.operacion)
-  const tipo = texto(sp.tipo)
-  // Number('abc') es NaN y NaN || undefined cae en undefined: un valor basura
-  // en la URL simplemente no filtra, no rompe
-  const dormitorios = Number(texto(sp.dormitorios)) || undefined
-  const banos = Number(texto(sp.banos)) || undefined
-  // Mascotas es de tres estados: sin filtro, 'si' y 'no' (pedido del cliente,
-  // 17/8 — alguien con alergia también busca)
-  // El tipo va explícito: sin él, el ternario se ensancha a string y deja de
-  // encajar con el 'si' | 'no' que esperan la query y el panel.
-  const mascotas: 'si' | 'no' | undefined =
-    sp.mascotas === 'si' ? 'si' : sp.mascotas === 'no' ? 'no' : undefined
-  const patio =
-    typeof sp.patio === 'string' && (TIPOS_PATIO as readonly string[]).includes(sp.patio)
-      ? sp.patio
-      : undefined
-  // Vienen separadas por coma en la URL. Se filtran contra el vocabulario real:
-  // lo que no está en la lista no filtra (no rompe ni filtra mal).
-  const caracteristicas = (texto(sp.caract) ?? '')
-    .split(',')
-    .map((c) => c.trim())
-    .filter((c) => CARACTERISTICAS_VALIDAS.includes(c))
-  const garaje = sp.garaje === 'si'
-  const ideal =
-    typeof sp.ideal === 'string' && (IDEAL_PARA as readonly string[]).includes(sp.ideal)
-      ? sp.ideal
-      : undefined
+/*
+  ESTA PÁGINA ES ESTÁTICA A PROPÓSITO, Y ROMPERLO ES FÁCIL.
 
-  const filtrosActuales = {
-    operacion,
-    tipo,
-    dormitorios,
-    banos,
-    patio,
-    caracteristicas,
-    garaje,
-    mascotas,
-    ideal,
-  }
+  No recibe `searchParams` ni usa ninguna API dinámica, así que Next la
+  prerenderiza y Vercel la sirve desde el CDN sin ejecutar una función. Los
+  filtros de la URL los aplica el navegador (ListadoFiltrado).
 
+  Por qué importa: mientras leía searchParams en el servidor, cada visita
+  ejecutaba una función. Fueron 2,1 millones de invocaciones en 7 días solo en
+  `/`, casi todas de bots que no compran casas.
+
+  SI ALGUIEN AGREGA ACÁ `props.searchParams`, `cookies()`, `headers()` o un
+  `fetch` sin cachear, la página vuelve a ser dinámica y el ahorro desaparece
+  en silencio — el sitio sigue andando igual, solo que cobrando por visita.
+  Para comprobarlo: `npx next build` tiene que mostrar `○ /`, no `ƒ /`.
+
+  El revalidate mantiene el mismo comportamiento de antes: los datos se
+  refrescan como máximo cada 5 minutos, y el panel la regenera al instante
+  cuando se publica (revalidatePath('/') en admin/propiedades/actions.ts).
+*/
+export const revalidate = 300
+
+export default async function Home() {
   let contenido: React.ReactNode
   try {
-    const [config, propiedades, todas, faqs] = await Promise.all([
+    const [config, todas, faqs] = await Promise.all([
       getConfig(),
-      getPropiedadesPublicas({ ...filtrosActuales, idealPara: ideal }),
-      getPropiedadesPublicas({}), // sin filtro, para derivar los chips disponibles
+      // El listado COMPLETO: los filtros se aplican después, en el navegador.
+      getPropiedadesPublicas(),
       getFaqs(),
     ])
-    const portadas = await getPortadas(propiedades.map((p) => p.id))
+    // Objeto y no Map: esto cruza al cliente y un Map no es serializable.
+    const portadas = Object.fromEntries(await getPortadas(todas.map((p) => p.id)))
     const tiposDisponibles = [...new Set(todas.map((p) => p.tipo))]
     // El select ofrece de 1 hasta la propiedad con más dormitorios (pedido del
     // cliente, 17/8). Los campos y chacras tienen dormitorios en null y no cuentan;
@@ -214,39 +198,36 @@ export default async function Home(props: PageProps<'/'>) {
             </aside>
           </div>
         </section>
-        <section className="border-b border-line-soft bg-surface">
-          <div className="mx-auto max-w-6xl px-4 py-4">
-            <FilterPanel actual={filtrosActuales} disponibles={disponibles} />
-          </div>
-        </section>
+        {/*
+          Los filtros y el listado son la ÚNICA parte de la home que depende de
+          la URL, así que son la única que se renderiza en el cliente. Todo lo
+          de arriba y lo de abajo queda en el HTML estático.
 
-        {/* Listado */}
-        <section className="mx-auto max-w-6xl px-4 py-10">
-          <p className="text-sm text-ink-faint">
-            {propiedades.length === 1 ? '1 propiedad' : `${propiedades.length} propiedades`}
-            {resumenFiltros(filtrosActuales)}
-          </p>
-
-          {propiedades.length > 0 ? (
-            <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {propiedades.map((p) => (
-                <PropertyCard key={p.id} propiedad={p} fotoUrl={portadas.get(p.id)} />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-4 rounded-lg border border-line-soft bg-surface p-8 text-center">
-              <p className="font-semibold text-ink">
-                Ahora mismo no tenemos propiedades con ese filtro.
-              </p>
-              <p className="mt-1 text-sm text-ink-soft">
-                Escribinos por WhatsApp y te avisamos apenas entre una que te sirva.
-              </p>
-              <div className="mt-4 flex justify-center">
-                <WhatsAppLink href={linkWhatsApp(config.whatsapp)}>Avisame</WhatsAppLink>
-              </div>
-            </div>
-          )}
-        </section>
+          EL FALLBACK NO ES UN "CARGANDO", Y ESO ES DELIBERADO: es el mismo
+          listado SIN filtros. En una página prerenderizada, lo que Next manda
+          en el HTML es el fallback, así que eso es exactamente lo que lee
+          Google y lo que ve alguien sin JavaScript — las propiedades completas,
+          no un hueco. Cambiarlo por un spinner sacaría el listado del HTML y se
+          perdería la indexación de la home.
+        */}
+        <Suspense
+          fallback={
+            <FiltrosYListado
+              todas={todas}
+              portadas={portadas}
+              disponibles={disponibles}
+              whatsapp={config.whatsapp}
+              filtros={{}}
+            />
+          }
+        >
+          <ListadoFiltrado
+            todas={todas}
+            portadas={portadas}
+            disponibles={disponibles}
+            whatsapp={config.whatsapp}
+          />
+        </Suspense>
 
         {/* FAQs reales de la base — acordeón nativo, cero JavaScript */}
         {faqs.length > 0 && (
