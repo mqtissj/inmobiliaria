@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 /*
   Agendar una cita (pedido del cliente, 17/8). Igual que PropietarioForm:
@@ -136,4 +137,24 @@ export function CitaForm({ whatsapp, propInicial = '' }: { whatsapp: string; pro
       </div>
     </form>
   )
+}
+
+/*
+  El mismo formulario, pero tomando el código de propiedad de la URL.
+
+  POR QUÉ ESTÁ SEPARADO (7/9/2026): mientras /contacto leía `?prop=` en el
+  servidor era una ruta dinámica, o sea una función de Vercel por visita. Fueron
+  310.000 invocaciones en 7 días, casi todas de bots siguiendo el link de
+  "Contacto" del header. Leyendo el parámetro acá, la página pasa a ser estática
+  y la sirve el CDN.
+
+  Va SIEMPRE dentro de un <Suspense> cuyo fallback es este mismo formulario sin
+  precargar: en una página prerenderizada, lo que Next manda en el HTML es el
+  fallback. Así el formulario completo sigue estando en el HTML —para quien no
+  ejecuta JS y para los buscadores— y el código de la propiedad se completa al
+  hidratar.
+*/
+export function CitaFormDesdeUrl({ whatsapp }: { whatsapp: string }) {
+  const prop = useSearchParams().get('prop') ?? ''
+  return <CitaForm whatsapp={whatsapp} propInicial={prop} />
 }

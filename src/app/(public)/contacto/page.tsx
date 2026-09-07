@@ -1,8 +1,9 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { linkFacebook, linkInstagram, linkWhatsApp } from '@/lib/format'
 import { getConfig } from '@/lib/queries'
 import { WhatsAppLink } from '@/components/ui/WhatsAppLink'
-import { CitaForm } from './CitaForm'
+import { CitaForm, CitaFormDesdeUrl } from './CitaForm'
 import { PropietarioForm } from './PropietarioForm'
 
 export const metadata: Metadata = {
@@ -12,11 +13,17 @@ export const metadata: Metadata = {
     'Escribile a PF Negocios Inmobiliarios por WhatsApp, agendá una cita, visitá el local en 25 de Mayo 329, Tacuarembó, o contanos qué propiedad querés vender o alquilar.',
 }
 
-export default async function Contacto(props: PageProps<'/contacto'>) {
-  const sp = await props.searchParams
-  // Viniendo de una ficha ("Agendar una visita"), el código llega en la URL
-  // y el form de cita arranca con la propiedad puesta
-  const propInicial = typeof sp.prop === 'string' ? sp.prop : ''
+/*
+  ESTÁTICA A PROPÓSITO, igual que la home (ver (public)/page.tsx).
+
+  El `?prop=` que llega desde "Agendar una visita" lo lee el formulario en el
+  navegador, no esta página. Si alguien vuelve a poner `props.searchParams` acá,
+  la ruta se hace dinámica otra vez y se vuelve a pagar una función por visita
+  sin que nada se vea distinto. `npx next build` tiene que mostrar `○ /contacto`.
+*/
+export const revalidate = 300
+
+export default async function Contacto() {
   const config = await getConfig()
   const mapaHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${config.direccion}, Uruguay`
@@ -112,7 +119,12 @@ export default async function Contacto(props: PageProps<'/contacto'>) {
           {config.direccion.split(',')[0]}.
         </p>
         <div className="mt-5">
-          <CitaForm whatsapp={config.whatsapp} propInicial={propInicial} />
+          {/* El fallback es el MISMO formulario sin precargar: es lo que queda
+              en el HTML estático. Un "cargando" acá dejaría a la página sin
+              formulario para quien no ejecuta JavaScript. */}
+          <Suspense fallback={<CitaForm whatsapp={config.whatsapp} />}>
+            <CitaFormDesdeUrl whatsapp={config.whatsapp} />
+          </Suspense>
         </div>
       </section>
     </div>
