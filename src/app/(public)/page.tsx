@@ -16,6 +16,7 @@ import {
   FiltrosYListado,
   ListadoFiltrado,
 } from '@/components/propiedades/ListadoFiltrado'
+import { VideoSantander } from './VideoSantander'
 
 /*
   La canónica de la home es "/" A SECAS, sin los filtros.
@@ -177,19 +178,10 @@ export default async function Home() {
               </p>
               {/* Video institucional MiCasa (pedido del cliente, 19/8). Arranca
                   solo pero mudo — los navegadores bloquean autoplay con sonido —
-                  y con controles para poder activar el audio. Pesa 2,4 MB. */}
-              <video
-                className="mt-2.5 w-full rounded-md"
-                autoPlay
-                muted
-                loop
-                playsInline
-                controls
-                aria-label="Video de Santander sobre el préstamo MiCasa"
-              >
-                <source src="/videos/santander.mp4" type="video/mp4" />
-                Tu navegador no puede reproducir este video.
-              </video>
+                  y con controles para poder activar el audio. Pesa 2,4 MB, así
+                  que se monta recién al llegar a él: el porqué está en
+                  VideoSantander.tsx. */}
+              <VideoSantander />
               <p className="mt-2.5 text-sm leading-relaxed text-surface/90">
                 Somos agentes <span className="font-semibold text-surface">MiCasa</span> de{' '}
                 <span className="font-semibold text-surface">Banco Santander</span>: te
