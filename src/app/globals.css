@@ -87,7 +87,14 @@ body {
 
 /*
   Parallax de la foto del hero (15/9/2026): al bajar, la foto se desplaza más
-  lento que el texto — se mueve hasta un 30% del alto del hero.
+  lento que el texto — se mueve hasta un 50% del alto del hero (empezó en 30%
+  y Matías pidió que se note más).
+
+  EL TOPE ES QUE LA FOTO NUNCA AVANCE TAN RÁPIDO COMO EL SCROLL. Mientras vaya
+  más lenta, el hueco que deja arriba queda fuera de pantalla. Con 50% va a
+  0,50 del scroll en computadora, 0,54 en celular y 0,52 en tablet (en esos dos
+  el tramo `exit` mide lo que la pantalla, no lo que el hero). Si algún día se
+  sube, calcular eso antes: pasado 1 aparece una franja azul arriba de la foto.
 
   CERO JavaScript: es una animación atada al scroll (animation-timeline), que
   el navegador calcula solo. Así la home sigue siendo estática y no hay un
@@ -103,14 +110,14 @@ body {
   POR QUÉ EL @supports NO ES OPCIONAL. En un navegador sin animation-timeline
   esa propiedad se ignora, la animación corre sobre el reloj normal con
   duración 0 y, con fill-mode both, salta directo al final: la foto quedaría
-  corrida un 30% hacia abajo con un hueco azul arriba. Con el @supports, esos
+  corrida un 50% hacia abajo con un hueco azul arriba. Con el @supports, esos
   navegadores simplemente ven la foto quieta, como antes.
 
   Y no se mueve nada si la persona pidió menos movimiento en su sistema.
 */
 @keyframes hero-parallax {
   to {
-    transform: translateY(30%);
+    transform: translateY(50%);
   }
 }
 
