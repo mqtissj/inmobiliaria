@@ -84,3 +84,46 @@ body {
     opacity: 0;
   }
 }
+
+/*
+  Parallax de la foto del hero (15/9/2026): al bajar, la foto se desplaza más
+  lento que el texto — se mueve hasta un 30% del alto del hero.
+
+  CERO JavaScript: es una animación atada al scroll (animation-timeline), que
+  el navegador calcula solo. Así la home sigue siendo estática y no hay un
+  listener de scroll corriendo en cada cuadro.
+
+  CÓMO FUNCIONA. La <section> del hero declara su propia línea de tiempo de
+  vista (--hero). La foto se anima sobre el tramo `exit`: desde que el hero
+  empieza a irse por arriba hasta que se fue entero. Mientras tanto baja
+  respecto de su sección. El hueco que deja arriba queda siempre por encima
+  del borde de la pantalla, así que nunca se ve; lo de abajo lo recorta el
+  overflow-hidden de la sección.
+
+  POR QUÉ EL @supports NO ES OPCIONAL. En un navegador sin animation-timeline
+  esa propiedad se ignora, la animación corre sobre el reloj normal con
+  duración 0 y, con fill-mode both, salta directo al final: la foto quedaría
+  corrida un 30% hacia abajo con un hueco azul arriba. Con el @supports, esos
+  navegadores simplemente ven la foto quieta, como antes.
+
+  Y no se mueve nada si la persona pidió menos movimiento en su sistema.
+*/
+@keyframes hero-parallax {
+  to {
+    transform: translateY(30%);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-parallax-escena {
+      view-timeline-name: --hero;
+    }
+
+    .hero-parallax-foto {
+      animation: hero-parallax linear both;
+      animation-timeline: --hero;
+      animation-range: exit;
+    }
+  }
+}

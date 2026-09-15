@@ -143,7 +143,7 @@ export default async function Home() {
           ve grande, y "Casas, apartamentos y campos en Tacuarembó" sigue dentro
           del h1 porque es lo que busca la gente en Google.
         */}
-        <section className="relative isolate overflow-hidden bg-pf-navy">
+        <section className="hero-parallax-escena relative isolate overflow-hidden bg-pf-navy">
           {/* alt vacío: es decorativa, la información está en el texto.
               sizes NO es "100vw" a propósito: con object-cover en un hero alto
               (celular: 390x919) la foto se estira por el ALTO y termina midiendo
@@ -151,6 +151,8 @@ export default async function Home() {
               celular pedía la versión de 828 px y la estiraba más de 4 veces.
               Por debajo de 1280 se declara 1280px, que además es hasta donde
               llega el detalle real de esta foto.
+              hero-parallax-*: la foto se mueve un poco al bajar; la explicación
+              (y por qué va dentro de un @supports) está en globals.css.
               object-top: en pantalla ancha solo entra una franja de la foto; así
               se ve entera la silueta de los techos, y lo de abajo igual lo tapa
               la tarjeta de filtros que se monta sobre el borde.
@@ -165,7 +167,7 @@ export default async function Home() {
             fetchPriority="high"
             placeholder="blur"
             sizes="(min-width: 1280px) 100vw, 1280px"
-            className="-z-20 object-cover object-top"
+            className="hero-parallax-foto -z-20 object-cover object-top"
           />
           {/* En celular el texto ocupa todo el ancho, así que el velo es parejo.
               En pantalla grande se aclara hacia la derecha para que la foto se
@@ -179,7 +181,7 @@ export default async function Home() {
             <div>
               <h1 className="max-w-2xl font-display text-surface">
                 <span className="block text-balance text-4xl font-semibold leading-tight sm:text-6xl">
-                  Tu lugar y momento ideal
+                  Tu hogar ideal en tu lugar y momento ideal
                 </span>
                 <span className="mt-4 block font-sans text-lg font-medium text-surface/90 sm:text-xl">
                   Casas, apartamentos y campos en Tacuarembó
