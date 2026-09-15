@@ -133,12 +133,11 @@ export default async function Home() {
           18/8 ("En PF Negocios Inmobiliarios trabajamos desde 2021..."): con la
           foto, el hero queda en frase + corredores + Santander.
 
-          LA FOTO es el patio de TB-021 (Barrio Artigas). Sale de la placa de
-          Instagram que se subió al panel: todas las fotos de las propiedades son
-          esas placas de 1080x1080 con la onda y el logo PF pegados, así que se
-          recortó solo la foto real (sin los costados borrosos ni el logo) y se
-          guardó en public/fondos/inicio.jpg. Si se consigue el original del
-          celular del cliente, reemplazar ese archivo: va a verse más nítida.
+          LA FOTO (public/fondos/inicio.jpg) es la casa blanca de postigos azules
+          que eligió Matías. Mide 2560x1280, pero su detalle real llega a unos
+          1280 px (medido: por encima de eso no gana nada): alcanza para un fondo
+          con velo, no para verse nítida en retina. Si se reemplaza, que sea una
+          de 2560 px de ancho REALES, apaisada y con aire arriba y a los costados.
 
           El h1 lleva las dos líneas: la frase de la inmobiliaria es lo que se
           ve grande, y "Casas, apartamentos y campos en Tacuarembó" sigue dentro
@@ -146,8 +145,15 @@ export default async function Home() {
         */}
         <section className="relative isolate overflow-hidden bg-pf-navy">
           {/* alt vacío: es decorativa, la información está en el texto.
-              object-[50%_20%]: en pantalla ancha solo entra una franja de la
-              foto, y así la franja agarra la copa de la palmera y no el pasto.
+              sizes NO es "100vw" a propósito: con object-cover en un hero alto
+              (celular: 390x919) la foto se estira por el ALTO y termina midiendo
+              ~1840 px de ancho aunque la pantalla tenga 390. Con "100vw" el
+              celular pedía la versión de 828 px y la estiraba más de 4 veces.
+              Por debajo de 1280 se declara 1280px, que además es hasta donde
+              llega el detalle real de esta foto.
+              object-top: en pantalla ancha solo entra una franja de la foto; así
+              se ve entera la silueta de los techos, y lo de abajo igual lo tapa
+              la tarjeta de filtros que se monta sobre el borde.
               eager + fetchPriority y NO `priority`: en Next 16 `priority` está
               deprecado, y el doc de esta versión (02-components/image.md)
               recomienda esto antes que `preload` para la imagen del hero. */}
@@ -158,8 +164,8 @@ export default async function Home() {
             loading="eager"
             fetchPriority="high"
             placeholder="blur"
-            sizes="100vw"
-            className="-z-20 object-cover object-[50%_20%]"
+            sizes="(min-width: 1280px) 100vw, 1280px"
+            className="-z-20 object-cover object-top"
           />
           {/* En celular el texto ocupa todo el ancho, así que el velo es parejo.
               En pantalla grande se aclara hacia la derecha para que la foto se
