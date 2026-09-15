@@ -8,6 +8,7 @@ import logoMapfre from '../../../public/logos/mapfre.png'
 import logoSura from '../../../public/logos/sura.png'
 import logoPorto from '../../../public/logos/porto-seguro.png'
 import logoSancor from '../../../public/logos/sancor.png'
+import fotoInicio from '../../../public/fondos/inicio.jpg'
 import { getConfig, getFaqs, getPortadas, getPropiedadesPublicas } from '@/lib/queries'
 import { CARACTERISTICAS_VALIDAS, IDEAL_PARA, TIPOS_PATIO } from '@/lib/types'
 import { ErrorBox } from '@/components/ui/ErrorBox'
@@ -118,34 +119,71 @@ export default async function Home() {
 
     contenido = (
       <>
-        {/* Hero: título serif + datos reales, nada de promesas infladas.
-            Azul pleno de marca — pedido del cliente (17/8): "que el azul
-            tenga más presencia". Los chips van en su barra blanca abajo,
-            así conservan el mismo lenguaje visual en toda la página. */}
-        <section className="bg-pf-blue">
-          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:py-16 lg:grid-cols-[1fr_19rem] lg:gap-12">
+        {/*
+          Hero con foto de fondo (15/9/2026), tomando como modelo la portada de
+          Casas y Más: foto a todo el ancho, frase grande en blanco y la tarjeta
+          de filtros montada sobre el borde inferior (ver FiltrosYListado).
+
+          Reemplaza al azul pleno del 17/8, pero los colores siguen siendo los
+          de la inmobiliaria: el velo sobre la foto es el azul marino PF, no un
+          negro genérico. Además es lo que hace legible el texto blanco sobre
+          una foto clara — sin velo, las paredes blancas se comen la frase.
+
+          Se sacaron los dos párrafos de presentación que dictó el cliente el
+          18/8 ("En PF Negocios Inmobiliarios trabajamos desde 2021..."): con la
+          foto, el hero queda en frase + corredores + Santander.
+
+          LA FOTO es el patio de TB-021 (Barrio Artigas). Sale de la placa de
+          Instagram que se subió al panel: todas las fotos de las propiedades son
+          esas placas de 1080x1080 con la onda y el logo PF pegados, así que se
+          recortó solo la foto real (sin los costados borrosos ni el logo) y se
+          guardó en public/fondos/inicio.jpg. Si se consigue el original del
+          celular del cliente, reemplazar ese archivo: va a verse más nítida.
+
+          El h1 lleva las dos líneas: la frase de la inmobiliaria es lo que se
+          ve grande, y "Casas, apartamentos y campos en Tacuarembó" sigue dentro
+          del h1 porque es lo que busca la gente en Google.
+        */}
+        <section className="relative isolate overflow-hidden bg-pf-navy">
+          {/* alt vacío: es decorativa, la información está en el texto.
+              object-[50%_20%]: en pantalla ancha solo entra una franja de la
+              foto, y así la franja agarra la copa de la palmera y no el pasto.
+              eager + fetchPriority y NO `priority`: en Next 16 `priority` está
+              deprecado, y el doc de esta versión (02-components/image.md)
+              recomienda esto antes que `preload` para la imagen del hero. */}
+          <Image
+            src={fotoInicio}
+            alt=""
+            fill
+            loading="eager"
+            fetchPriority="high"
+            placeholder="blur"
+            sizes="100vw"
+            className="-z-20 object-cover object-[50%_20%]"
+          />
+          {/* En celular el texto ocupa todo el ancho, así que el velo es parejo.
+              En pantalla grande se aclara hacia la derecha para que la foto se
+              vea, y el recuadro de Santander lleva su propio fondo. */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 -z-10 bg-pf-navy/70 lg:bg-transparent lg:bg-linear-to-r lg:from-pf-navy/90 lg:via-pf-navy/60 lg:to-pf-navy/25"
+          />
+
+          <div className="mx-auto grid max-w-6xl gap-10 px-4 pb-28 pt-16 sm:pt-24 lg:grid-cols-[1fr_19rem] lg:gap-12 lg:pb-32 lg:pt-28">
             <div>
-              <h1 className="max-w-xl text-balance font-display text-3xl font-semibold text-surface sm:text-4xl">
-                Casas, apartamentos y campos en Tacuarembó
+              <h1 className="max-w-2xl font-display text-surface">
+                <span className="block text-balance text-4xl font-semibold leading-tight sm:text-6xl">
+                  Tu lugar y momento ideal
+                </span>
+                <span className="mt-4 block font-sans text-lg font-medium text-surface/90 sm:text-xl">
+                  Casas, apartamentos y campos en Tacuarembó
+                </span>
               </h1>
-              {/* Texto dictado por el cliente el 18/8 (WhatsApp, hablado con su
-                  padre) — va textual, sin campos en la descripción a pedido suyo */}
-              <p className="mt-3 max-w-xl text-surface/85">
-                En PF Negocios Inmobiliarios trabajamos desde 2021 ofreciendo soluciones
-                inmobiliarias en Tacuarembó. Nos especializamos en la venta y alquiler de
-                propiedades, brindando atención personalizada y acompañamiento durante todo el
-                proceso.
-              </p>
-              <p className="mt-3 max-w-xl text-surface/85">
-                Contamos con experiencia en el mercado inmobiliario local y trabajamos para
-                conectar cada propiedad con la persona adecuada, ofreciendo un servicio basado en
-                la confianza, el compromiso y la atención cercana.
-              </p>
 
               {/* Corredores de garantías (17-18/8): la jerarquía la marca la frase
                   (MAPFRE y SURA nombradas como corredores); los logos van parejos
                   a pedido del cliente del 18/8. */}
-              <div className="mt-7">
+              <div className="mt-10">
                 <p className="max-w-xl text-sm font-semibold text-surface">
                   También somos corredores de garantías de alquiler de MAPFRE y SURA
                   <span className="font-normal text-surface/80">
@@ -171,8 +209,10 @@ export default async function Home() {
 
             {/* Banco Santander a la derecha, más chico — pedido del cliente (18/8):
                 "en el lado derecho más chiquito, igual que sobra espacio".
-                En cel el grid colapsa y queda abajo de los logos. */}
-            <aside className="self-center rounded-lg border border-surface/20 bg-surface/10 p-5">
+                En cel el grid colapsa y queda abajo de los logos. Fondo marino
+                propio: del lado derecho el velo es más liviano y sin esto el
+                texto blanco quedaría sobre la foto. */}
+            <aside className="self-center rounded-lg border border-surface/20 bg-pf-navy/75 p-5 backdrop-blur-sm">
               <p className="text-[11px] font-bold uppercase tracking-wider text-surface/70">
                 Financiamiento
               </p>
@@ -221,19 +261,29 @@ export default async function Home() {
           />
         </Suspense>
 
-        {/* FAQs reales de la base — acordeón nativo, cero JavaScript */}
+        {/* FAQs reales de la base — acordeón nativo, cero JavaScript.
+            Agrandadas el 15/9: más ancho, título y textos más grandes, y un "+"
+            que gira al abrir para que se entienda que se despliegan. */}
         {faqs.length > 0 && (
-          <section id="faqs" className="mx-auto max-w-2xl scroll-mt-20 px-4 py-10">
-            <h2 className="font-display text-2xl font-semibold text-pf-navy">
+          <section id="faqs" className="mx-auto max-w-4xl scroll-mt-24 px-4 py-16 lg:scroll-mt-28">
+            <h2 className="font-display text-3xl font-semibold text-pf-navy sm:text-4xl">
               Preguntas frecuentes
             </h2>
-            <div className="mt-4 divide-y divide-line-soft rounded-lg border border-line-soft bg-surface">
+            <div className="mt-6 divide-y divide-line-soft rounded-xl border border-line-soft bg-surface">
               {faqs.map((f) => (
-                <details key={f.id} className="group px-5 py-4">
-                  <summary className="cursor-pointer list-none font-semibold text-ink marker:content-none group-open:text-pf-blue">
+                <details key={f.id} className="group px-5 py-5 sm:px-8 sm:py-6">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-semibold text-ink marker:content-none group-open:text-pf-blue sm:text-xl">
                     {f.pregunta}
+                    <span
+                      aria-hidden="true"
+                      className="shrink-0 text-3xl font-normal leading-none text-pf-blue transition-transform group-open:rotate-45"
+                    >
+                      +
+                    </span>
                   </summary>
-                  <p className="mt-2 text-sm leading-relaxed text-ink-soft">{f.respuesta}</p>
+                  <p className="mt-3 text-base leading-relaxed text-ink-soft sm:text-lg">
+                    {f.respuesta}
+                  </p>
                 </details>
               ))}
             </div>

@@ -65,8 +65,12 @@ export function FiltrosYListado({
 
   return (
     <>
-      <section className="border-b border-line-soft bg-surface">
-        <div className="mx-auto max-w-6xl px-4 py-4">
+      {/* Tarjeta montada sobre el borde de la foto del hero (15/9), como el
+          buscador de la portada de Casas y Más. Es el MISMO panel de filtros
+          de siempre, solo cambió de lugar: no hay un buscador duplicado. El
+          -mt tiene que entrar en el pb del hero de la home. */}
+      <section className="relative z-10 mx-auto -mt-16 max-w-6xl px-4">
+        <div className="rounded-xl border border-line-soft bg-surface p-4 shadow-xl shadow-pf-navy/15 sm:p-5">
           <FilterPanel actual={actual} disponibles={disponibles} />
         </div>
       </section>

@@ -14,26 +14,31 @@ export default async function PublicLayout({ children }: { children: React.React
 
   return (
     <>
-      {/* border-t-2 azul: filete de marca en el borde superior de toda la web (17/8) */}
+      {/* border-t-2 azul: filete de marca en el borde superior de toda la web (17/8).
+          Agrandado el 15/9 (h-16 → h-20, y h-24 en pantalla grande). OJO: las
+          anclas (#faqs, #agendar, #propietarios) tienen un scroll-mt que
+          depende de esta altura; si se cambia acá, cambiarlas también. En
+          celular la marca queda del tamaño de antes: más grande desborda los
+          390px (el fix responsive del 17/8). */}
       <header className="sticky top-0 z-30 border-b border-t-2 border-line-soft border-t-pf-blue bg-surface/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <BrandMark />
-            <span className="font-display text-base font-semibold leading-tight text-pf-navy sm:text-lg">
+        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-4 px-4 lg:h-24">
+          <Link href="/" className="flex items-center gap-3">
+            <BrandMark className="h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14" />
+            <span className="font-display text-base font-semibold leading-tight text-pf-navy sm:text-xl lg:text-2xl">
               {config.nombre}
             </span>
           </Link>
 
-          <nav className="flex items-center gap-3 sm:gap-5">
+          <nav className="flex items-center gap-3 sm:gap-6">
             <Link
               href="/#faqs"
-              className="hidden text-sm font-semibold text-ink-soft transition-colors hover:text-pf-blue md:block"
+              className="hidden text-base font-semibold text-ink-soft transition-colors hover:text-pf-blue md:block"
             >
               Preguntas frecuentes
             </Link>
             <Link
               href="/contacto"
-              className="text-sm font-semibold text-ink-soft transition-colors hover:text-pf-blue"
+              className="text-sm font-semibold text-ink-soft transition-colors hover:text-pf-blue sm:text-base"
             >
               Contacto
             </Link>

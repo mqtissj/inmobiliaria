@@ -88,7 +88,7 @@ export default async function Contacto() {
 
         {/* Propietarios: la sección que le trae negocio a PF.
             El id lo usa el botón "Propietario" de los filtros de la home. */}
-        <div id="propietarios" className="scroll-mt-20 rounded-lg border border-line-soft bg-surface p-6">
+        <div id="propietarios" className="scroll-mt-24 lg:scroll-mt-28 rounded-lg border border-line-soft bg-surface p-6">
           <h2 className="font-display text-lg font-semibold text-pf-navy">
             ¿Tenés una propiedad para vender o alquilar?
           </h2>
@@ -112,7 +112,7 @@ export default async function Contacto() {
       {/* Agendar una cita (pedido del cliente, 17/8) — bloque azul pleno,
           distinto a las tarjetas de arriba a propósito: es el remate de la
           página, no una tarjeta más */}
-      <section id="agendar" className="mt-10 scroll-mt-20 rounded-lg bg-pf-blue px-6 py-8">
+      <section id="agendar" className="mt-10 scroll-mt-24 lg:scroll-mt-28 rounded-lg bg-pf-blue px-6 py-8">
         <h2 className="font-display text-xl font-semibold text-surface">Agendá una cita</h2>
         <p className="mt-1 max-w-xl text-sm text-surface/85">
           Contanos para qué y cuándo te queda bien. Atendemos {config.horario.toLowerCase()} en{' '}
