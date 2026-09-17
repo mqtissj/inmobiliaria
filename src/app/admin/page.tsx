@@ -58,7 +58,7 @@ export default async function AdminPropiedades(props: PageProps<'/admin'>) {
         <div className="mt-4 rounded-md bg-pf-teal-soft px-4 py-3 text-sm font-semibold text-pf-teal">
           Propiedad {creada ?? editada} {creada ? 'creada' : 'actualizada'}{' '}
           {fotosAviso === 'error'
-            ? '— pero alguna foto no subió; abrila en la web para verificar.'
+            ? '— pero alguna foto no subió o no quedó en su lugar; entrá a editarla para revisarlas.'
             : 'y publicada.'}{' '}
           <a
             href={`/propiedades/${(creada ?? editada)!.toLowerCase()}`}

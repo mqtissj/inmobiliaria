@@ -4,7 +4,8 @@ import { useCallback, useRef, useState } from 'react'
 
 /*
   Arrastrar y soltar SIN librerías: los eventos dragover/drop del navegador
-  alcanzan y son explicables línea por línea. La primera foto es la portada.
+  alcanzan y son explicables línea por línea. Solo ELIGE fotos: el orden, la
+  portada y las miniaturas los maneja GaleriaFotos, junto con las ya publicadas.
   Valida acá lo mismo que exige el bucket (5 MB, solo imágenes) para avisar
   ANTES de subir, no después.
 */
@@ -17,18 +18,23 @@ export interface FotoElegida {
 }
 
 export function PhotoDropzone({
-  fotos,
-  onChange,
+  onAgregar,
   deshabilitado,
 }: {
-  fotos: FotoElegida[]
-  onChange: (fotos: FotoElegida[]) => void
+  onAgregar: (nuevas: FotoElegida[]) => void
   deshabilitado?: boolean
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [arrastrando, setArrastrando] = useState(false)
   const [rechazadas, setRechazadas] = useState<string[]>([])
 
+  /*
+    Los object URLs de las previews NO se liberan acá.
+    Los libera PropertyForm, que es quien tiene la lista: este componente se
+    desmonta y se vuelve a montar cada vez que un intento de guardado falla (el
+    <form> se remonta por `key`), y si la limpieza viviera acá, cada error
+    dejaría las miniaturas rotas con las fotos todavía elegidas.
+  */
   const agregar = useCallback(
     (lista: FileList | null) => {
       if (!lista) return
@@ -44,23 +50,10 @@ export function PhotoDropzone({
         }
       }
       setRechazadas(malas)
-      if (nuevas.length > 0) onChange([...fotos, ...nuevas])
+      if (nuevas.length > 0) onAgregar(nuevas)
     },
-    [fotos, onChange]
+    [onAgregar]
   )
-
-  const quitar = (i: number) => {
-    URL.revokeObjectURL(fotos[i].preview)
-    onChange(fotos.filter((_, j) => j !== i))
-  }
-
-  /*
-    Los object URLs de las previews NO se liberan acá.
-    Los libera PropertyForm, que es quien tiene el estado `fotos`: este
-    componente se desmonta y se vuelve a montar cada vez que un intento de
-    guardado falla (el <form> se remonta por `key`), y si la limpieza viviera
-    acá, cada error dejaría las miniaturas rotas con las fotos todavía elegidas.
-  */
 
   return (
     <div>
@@ -120,35 +113,6 @@ export function PhotoDropzone({
             ))}
           </ul>
         </div>
-      )}
-
-      {fotos.length > 0 && (
-        <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
-          {fotos.map((f, i) => (
-            <li key={f.preview} className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element -- preview local (blob:), next/image no aplica */}
-              <img
-                src={f.preview}
-                alt={`Foto ${i + 1} elegida`}
-                className="aspect-square w-full rounded-md border border-line-soft object-cover"
-              />
-              {i === 0 && (
-                <span className="absolute left-1 top-1 rounded-full bg-pf-navy/80 px-2 py-0.5 text-[10px] font-bold uppercase text-surface">
-                  portada
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => quitar(i)}
-                disabled={deshabilitado}
-                aria-label={`Quitar foto ${i + 1}`}
-                className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-pf-navy/80 text-xs font-bold text-surface transition-colors hover:bg-pf-coral"
-              >
-                ×
-              </button>
-            </li>
-          ))}
-        </ul>
       )}
     </div>
   )

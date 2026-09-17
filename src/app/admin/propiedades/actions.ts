@@ -324,22 +324,74 @@ export async function eliminarPropiedad(formData: FormData): Promise<void> {
   )
 }
 
-// Se llama DESPUÉS de que el navegador subió archivos nuevos al bucket.
-export async function registrarFotos(
+/** Una foto en el orden final: la ya publicada va por id, la recién subida por URL. */
+export type FotoParaOrdenar = { id: string } | { url: string }
+
+/*
+  Deja las fotos de la propiedad EXACTAMENTE en el orden de la grilla del
+  panel: `orden` de 0 en adelante y portada la primera. Se llama al guardar,
+  DESPUÉS de que el navegador subió las nuevas al bucket.
+
+  Se renumeran TODAS, no solo las nuevas. Antes las nuevas iban al final con
+  `orden = cantidad de fotos`, y eso tenía dos problemas (medido en la base el
+  16/9/2026): si se había borrado alguna, el número chocaba con uno que ya
+  existía (TB-012 tenía 7, 7, 8, 8, 9, 9), y si se había borrado la portada,
+  ninguna quedaba marcada. Guardar una vez con esto arregla esas propiedades.
+
+  Probado contra la base ese mismo día: la tabla no tiene índice único ni en
+  `orden` ni en `es_portada`, y un solo upsert reordena las existentes e
+  inserta las nuevas conservando los ids.
+*/
+export async function guardarFotos(
   propiedadId: string,
   codigo: string,
-  fotos: { url: string; orden: number; es_portada: boolean }[]
+  enOrden: FotoParaOrdenar[]
 ): Promise<{ error: string | null }> {
   const { supabase, user } = await usuarioActual()
-  if (!user) return { error: 'Tu sesión venció. Las fotos quedaron subidas pero sin registrar.' }
+  if (!user) return { error: 'Tu sesión venció. Las fotos quedaron subidas pero sin ordenar.' }
 
-  if (fotos.length === 0) return { error: null }
-
-  const { error } = await supabase
+  const { data: actuales, error: errLectura } = await supabase
     .from('propiedad_fotos')
-    .insert(fotos.map((f) => ({ ...f, propiedad_id: propiedadId })))
+    .select('id, url')
+    .eq('propiedad_id', propiedadId)
+    .order('es_portada', { ascending: false })
+    .order('orden', { ascending: true })
+  if (errLectura) {
+    console.error('[guardarFotos] error de Supabase al leer:', errLectura)
+    return { error: 'No se pudieron leer las fotos para ordenarlas.' }
+  }
 
-  if (error) return { error: 'Las fotos subieron pero no se pudieron vincular a la propiedad.' }
+  // La URL de las existentes sale de la base, no del navegador
+  const pendientes = new Map((actuales ?? []).map((f) => [f.id, f.url]))
+  const filas: { id?: string; url: string }[] = []
+  for (const foto of enOrden) {
+    if ('url' in foto) {
+      filas.push({ url: foto.url })
+      continue
+    }
+    const url = pendientes.get(foto.id)
+    if (url === undefined) continue // se borró mientras tanto: no se resucita
+    pendientes.delete(foto.id)
+    filas.push({ id: foto.id, url })
+  }
+  // Las que están en la base pero la grilla no conocía (subidas desde otra
+  // pestaña) van al final, como estaban. Si no, conservarían su número viejo y
+  // podría haber dos portadas.
+  for (const [id, url] of pendientes) filas.push({ id, url })
+
+  if (filas.length === 0) return { error: null }
+
+  const { error } = await supabase.from('propiedad_fotos').upsert(
+    filas.map((f, i) => ({ ...f, propiedad_id: propiedadId, orden: i, es_portada: i === 0 })),
+    // Una sola sentencia: queda el orden nuevo entero o no cambia nada.
+    // `defaultToNull: false` hace que las filas nuevas, que no mandan id, tomen
+    // el id por defecto de la tabla en vez de null.
+    { onConflict: 'id', defaultToNull: false }
+  )
+  if (error) {
+    console.error('[guardarFotos] error de Supabase:', error)
+    return { error: 'Las fotos se subieron, pero no se pudo guardar el orden.' }
+  }
 
   invalidarPropiedad(codigo)
   return { error: null }

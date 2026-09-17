@@ -1,7 +1,6 @@
 'use client'
 
 import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import {
@@ -15,12 +14,14 @@ import {
   type PropiedadFoto,
 } from '@/lib/types'
 import { PhotoDropzone, type FotoElegida } from '@/components/admin/PhotoDropzone'
+import { GaleriaFotos, type FotoEnGaleria } from '@/components/admin/GaleriaFotos'
 import {
   actualizarPropiedad,
   borrarFoto,
   crearPropiedad,
-  registrarFotos,
+  guardarFotos,
   type EstadoGuardar,
+  type FotoParaOrdenar,
 } from '../actions'
 
 /*
@@ -31,9 +32,12 @@ import {
    1. La Server Action crea/actualiza (valida sesión y datos en el servidor).
    2. El NAVEGADOR sube las fotos nuevas directo al bucket (límite de 1 MB
       en las actions; los archivos no pasan por el servidor de Next).
-   3. Otra action registra las URLs y revalida la web pública.
+   3. Otra action guarda el orden de la grilla (nuevas y publicadas juntas,
+      la primera de portada) y revalida la web pública.
   Las fotos EXISTENTES se borran al toque con su botón (con confirmación) —
-  no esperan al guardado, para que lo que ves sea lo que hay.
+  no esperan al guardado, para que lo que ves sea lo que hay. El ORDEN, en
+  cambio, se guarda con el botón: así una placa nueva se puede subir y poner
+  de portada en la misma pasada.
 */
 const estadoInicial: EstadoGuardar = { error: null }
 
@@ -83,8 +87,10 @@ export function PropertyForm({
 
   const [tipo, setTipo] = useState(propiedad?.tipo ?? 'casa')
   const [operacion, setOperacion] = useState<string>(propiedad?.operacion ?? 'venta')
-  const [fotos, setFotos] = useState<FotoElegida[]>([])
-  const [actuales, setActuales] = useState<PropiedadFoto[]>(fotosExistentes)
+  // Publicadas y nuevas en UNA lista, en el orden en que van a quedar en la web
+  const [galeria, setGaleria] = useState<FotoEnGaleria[]>(() =>
+    fotosExistentes.map((publicada) => ({ publicada }))
+  )
   const [subiendo, setSubiendo] = useState<string | null>(null)
   const [errorFotos, setErrorFotos] = useState<string | null>(null)
   const [borrando, startBorrado] = useTransition()
@@ -121,55 +127,65 @@ export function PropertyForm({
     remonta en cada intento fallido: si siguiera en el hijo, cada error revocaría
     las previews y las fotos elegidas quedarían como miniaturas rotas.
   */
-  const fotosVigentes = useRef<FotoElegida[]>([])
+  const galeriaVigente = useRef<FotoEnGaleria[]>([])
   useEffect(() => {
-    fotosVigentes.current = fotos
-  }, [fotos])
-  useEffect(() => () => fotosVigentes.current.forEach((f) => URL.revokeObjectURL(f.preview)), [])
+    galeriaVigente.current = galeria
+  }, [galeria])
+  useEffect(
+    () => () =>
+      galeriaVigente.current.forEach((f) => {
+        if ('nueva' in f) URL.revokeObjectURL(f.nueva.preview)
+      }),
+    []
+  )
 
-  // Al confirmar la action: subir las fotos nuevas y volver al listado.
+  // Al confirmar la action: subir las fotos nuevas, guardar el orden y volver al listado.
   useEffect(() => {
     if (!estado.ok || yaProceso.current) return
     yaProceso.current = true
     const { id, codigo } = estado.ok
 
-    async function subirFotosNuevas() {
-      let fallidas = 0
+    async function guardarLasFotos() {
+      let huboError = false
 
-      if (fotos.length > 0) {
+      if (galeria.length > 0) {
         const supabase = supabaseBrowser()
-        const subidas: { url: string; orden: number; es_portada: boolean }[] = []
-        const base = actuales.length // las nuevas van después de las que ya había
+        const totalNuevas = galeria.filter((f) => 'nueva' in f).length
+        const enOrden: FotoParaOrdenar[] = []
+        let n = 0
 
-        for (let i = 0; i < fotos.length; i++) {
-          setSubiendo(`Subiendo foto ${i + 1} de ${fotos.length}…`)
-          const file = fotos[i].file
+        // En el orden de la grilla: las publicadas viajan por id y las nuevas
+        // por la URL que les da el bucket al subirlas.
+        for (const foto of galeria) {
+          if ('publicada' in foto) {
+            enOrden.push({ id: foto.publicada.id })
+            continue
+          }
+          n++
+          setSubiendo(`Subiendo foto ${n} de ${totalNuevas}…`)
+          const file = foto.nueva.file
           const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
-          const ruta = `${codigo.toLowerCase()}/${Date.now()}-${i}.${ext}`
+          const ruta = `${codigo.toLowerCase()}/${Date.now()}-${n}.${ext}`
 
           const { error } = await supabase.storage.from('fotos-propiedades').upload(ruta, file, {
             contentType: file.type,
           })
           if (error) {
-            fallidas++
+            huboError = true // la que no subió se saltea; las demás conservan su orden
             continue
           }
           const { data } = supabase.storage.from('fotos-propiedades').getPublicUrl(ruta)
-          subidas.push({
-            url: data.publicUrl,
-            orden: base + i,
-            es_portada: actuales.length === 0 && subidas.length === 0,
-          })
+          enOrden.push({ url: data.publicUrl })
         }
 
-        if (subidas.length > 0) {
-          setSubiendo('Vinculando fotos…')
-          const res = await registrarFotos(id, codigo, subidas)
-          if (res.error) fallidas = fotos.length
+        if (enOrden.length > 0) {
+          setSubiendo('Guardando el orden de las fotos…')
+          const res = await guardarFotos(id, codigo, enOrden)
+          if (res.error) huboError = true
         }
       }
 
-      const q = fallidas > 0 ? '&fotos=error' : ''
+      const q = huboError ? '&fotos=error' : ''
       router.push(`/admin?${editando ? 'editada' : 'creada'}=${codigo}${q}`)
       router.refresh()
     }
@@ -186,7 +202,7 @@ export function PropertyForm({
       La propiedad ya está creada en este punto, así que el error solo afecta a
       las fotos: se avisa y se sigue al listado, que es lo que el usuario quiere.
     */
-    subirFotosNuevas().catch((e) => {
+    guardarLasFotos().catch((e) => {
       console.error('[PropertyForm] falló la subida de fotos:', e)
       setSubiendo(null)
       setErrorFotos(
@@ -194,20 +210,48 @@ export function PropertyForm({
       )
       yaProceso.current = false
     })
-  }, [estado.ok, fotos, actuales.length, editando, router])
+  }, [estado.ok, galeria, editando, router])
 
-  const quitarExistente = (foto: PropiedadFoto) => {
+  const agregarFotos = (nuevas: FotoElegida[]) =>
+    setGaleria((prev) => [...prev, ...nuevas.map((nueva) => ({ nueva }))])
+
+  const moverFoto = (desde: number, hasta: number) =>
+    setGaleria((prev) => {
+      const lista = [...prev]
+      const [foto] = lista.splice(desde, 1)
+      lista.splice(hasta, 0, foto)
+      return lista
+    })
+
+  const quitarFoto = (foto: FotoEnGaleria) => {
+    // Una recién elegida todavía no existe en ningún lado: se saca de la lista y listo
+    if ('nueva' in foto) {
+      URL.revokeObjectURL(foto.nueva.preview)
+      setGaleria((prev) => prev.filter((f) => f !== foto))
+      return
+    }
     if (!propiedad) return
     if (!window.confirm('¿Borrar esta foto? Se saca de la web al instante.')) return
     startBorrado(async () => {
-      const res = await borrarFoto(foto.id, propiedad.codigo)
+      const res = await borrarFoto(foto.publicada.id, propiedad.codigo)
       if (res.error) {
         setErrorFotos(res.error)
       } else {
-        setActuales((prev) => prev.filter((f) => f.id !== foto.id))
+        setGaleria((prev) => prev.filter((f) => f !== foto))
       }
     })
   }
+
+  /*
+    ¿Hay algo en las fotos que la web todavía no tiene? Mover no se aplica al
+    instante como borrar: sin este aviso, alguien acomoda la portada, se va sin
+    guardar y la web sigue igual. Las borradas se sacan de las dos listas antes
+    de comparar, porque esas ya se aplicaron.
+  */
+  const idsEnGrilla = galeria.flatMap((f) => ('publicada' in f ? [f.publicada.id] : []))
+  const ordenDeLaBase = fotosExistentes.map((f) => f.id).filter((id) => idsEnGrilla.includes(id))
+  const fotosSinGuardar =
+    galeria.some((f) => 'nueva' in f) || idsEnGrilla.join() !== ordenDeLaBase.join()
 
   const ocupado = enviando || subiendo !== null
 
@@ -654,41 +698,26 @@ export function PropertyForm({
       </Seccion>
 
       <Seccion titulo="Fotos">
-        {actuales.length > 0 && (
-          <>
-            <p className="mb-2 text-sm text-ink-soft">
-              Las que ya están publicadas — borrarlas las saca de la web al instante:
+        {galeria.length > 0 && (
+          <div className="mb-4">
+            <p className="mb-3 text-sm text-ink-soft">
+              La primera es la portada. Con las flechas cambiás el orden
+              {editando ? '; la × de una foto publicada la saca de la web al instante.' : '.'}
             </p>
-            <ul className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {actuales.map((f, i) => (
-                <li key={f.id} className="relative">
-                  <Image
-                    src={f.url}
-                    alt={`Foto publicada ${i + 1}`}
-                    width={160}
-                    height={160}
-                    className="aspect-square w-full rounded-md border border-line-soft object-cover"
-                  />
-                  {f.es_portada && (
-                    <span className="absolute left-1 top-1 rounded-full bg-pf-navy/80 px-2 py-0.5 text-[10px] font-bold uppercase text-surface">
-                      portada
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => quitarExistente(f)}
-                    disabled={borrando || ocupado}
-                    aria-label={`Borrar foto publicada ${i + 1}`}
-                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-pf-navy/80 text-xs font-bold text-surface transition-colors hover:bg-pf-coral"
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
+            <GaleriaFotos
+              fotos={galeria}
+              onMover={moverFoto}
+              onQuitar={quitarFoto}
+              deshabilitado={borrando || ocupado}
+            />
+            {editando && fotosSinGuardar && (
+              <p className="mt-3 rounded-md bg-pf-blue-soft px-3 py-2 text-sm font-semibold text-pf-blue">
+                Hay cambios en las fotos: se publican cuando tocás “Guardar cambios”.
+              </p>
+            )}
+          </div>
         )}
-        <PhotoDropzone fotos={fotos} onChange={setFotos} deshabilitado={ocupado} />
+        <PhotoDropzone onAgregar={agregarFotos} deshabilitado={ocupado} />
       </Seccion>
 
       <div className="flex items-center gap-4">
