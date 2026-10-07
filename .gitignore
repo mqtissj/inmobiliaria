@@ -42,3 +42,6 @@ next-env.d.ts
 .gstack/
 
 .vercel
+
+# backups locales de Supabase (scripts/backup.mjs) — datos del cliente y 15 MB de fotos
+/backups
