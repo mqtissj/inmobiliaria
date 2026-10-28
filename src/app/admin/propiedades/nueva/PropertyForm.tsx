@@ -85,7 +85,8 @@ export function PropertyForm({
     estadoInicial
   )
 
-  const [tipo, setTipo] = useState(propiedad?.tipo ?? 'casa')
+  // Sin valor por defecto a propósito: ver el comentario del <select> de Tipo.
+  const [tipo, setTipo] = useState(propiedad?.tipo ?? '')
   const [operacion, setOperacion] = useState<string>(propiedad?.operacion ?? 'venta')
   // Publicadas y nuevas en UNA lista, en el orden en que van a quedar en la web
   const [galeria, setGaleria] = useState<FotoEnGaleria[]>(() =>
@@ -331,13 +332,22 @@ export function PropertyForm({
             <label htmlFor="tipo" className={claseLabel}>
               Tipo
             </label>
+            {/* Una propiedad NUEVA arranca sin tipo elegido, no en "Casa".
+                Mientras el valor por defecto era casa, alcanzaba con no tocar
+                este campo para que un terreno quedara guardado como casa y
+                apareciera en el filtro Casas de la home: pasó con TB-027
+                (27/9/2026, "Terreno en Barrio la Matutina"). `required` con la
+                primera opción vacía obliga a elegir; la action ya rechazaba un
+                tipo fuera del vocabulario ("Elegí el tipo de propiedad"). */}
             <select
               id="tipo"
               name="tipo"
+              required
               value={tipo}
               onChange={(e) => setTipo(e.target.value)}
               className={claseInput}
             >
+              <option value="">Elegí el tipo…</option>
               {TIPOS_PROPIEDAD.map((t) => (
                 <option key={t} value={t}>
                   {t.charAt(0).toUpperCase() + t.slice(1)}
